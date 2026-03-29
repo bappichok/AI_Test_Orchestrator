@@ -1,5 +1,7 @@
 # AI Test Orchestrator
 
+![Dashboard Screenshot](./dashboard.png)
+
 > Generate professional QA Test Plans, Test Cases, and Automation Code from Jira, Azure DevOps & XRay stories — powered by the **B.L.A.S.T. Framework** and AI.
 
 ## ✨ Features
