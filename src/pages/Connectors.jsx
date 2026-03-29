@@ -1,102 +1,73 @@
 import { useState, useEffect, useCallback } from 'react'
-
-const INTEGRATIONS = [
-  {
-    id: 'jira',
-    name: 'Jira',
-    icon: '🔷',
-    desc: 'Connect to Atlassian Jira Cloud or Server to fetch User Stories by Issue ID.',
-    fields: [
-      { key: 'baseUrl',  label: 'Jira Base URL',  placeholder: 'https://yourorg.atlassian.net', type: 'url' },
-      { key: 'email',    label: 'Email',           placeholder: 'you@example.com',               type: 'email' },
-      { key: 'apiToken', label: 'API Token',       placeholder: 'Your Atlassian API Token',       type: 'password' },
-    ]
-  },
-  {
-    id: 'ado',
-    name: 'Azure DevOps',
-    icon: '🔵',
-    desc: 'Connect to Azure DevOps Boards to fetch Work Items by ID.',
-    fields: [
-      { key: 'org',     label: 'Organization', placeholder: 'your-ado-org',  type: 'text' },
-      { key: 'project', label: 'Project',       placeholder: 'MyProject',     type: 'text' },
-      { key: 'token',   label: 'PAT Token',     placeholder: 'Personal Access Token', type: 'password' },
-    ]
-  },
-  {
-    id: 'llm',
-    name: 'LLM / AI Provider',
-    icon: '🤖',
-    desc: 'Configure the AI engine used to generate test plans.',
-    fields: [
-      { key: 'provider',   label: 'Provider',     placeholder: '',            type: 'select', options: ['openai', 'anthropic', 'ollama', 'groq', 'gemini', 'custom'] },
-      { key: 'apiKey',     label: 'API Key',       placeholder: 'sk-...',      type: 'password' },
-      { key: 'ollamaUrl',  label: 'Ollama URL', placeholder: 'http://localhost:11434', type: 'url' },
-      { key: 'ollamaModel',label: 'Ollama Model',  placeholder: 'llama3',      type: 'text' },
-      { key: 'groqModel',  label: 'Groq Model', placeholder: 'llama-3.3-70b-versatile', type: 'text' },
-      { key: 'geminiModel',label: 'Gemini Model',  placeholder: 'gemini-1.5-flash', type: 'text' },
-      { key: 'customUrl',  label: 'Custom Base URL (OpenAI-Compatible)', placeholder: 'http://localhost:1234/v1', type: 'url' },
-      { key: 'customModel',label: 'Custom Model ID', placeholder: 'local-model', type: 'text' },
-    ]
-  },
-]
+import { INTEGRATIONS } from '../constants'
+import { useConnections } from '../hooks/useConnections'
+import { connectionService } from '../services/api'
+import { useToast } from '../components/Toast'
 
 export default function Connectors() {
-  const [configs, setConfigs]   = useState({})
+  const { connections, updateConnection } = useConnections()
+  const { addToast } = useToast()
   const [statuses, setStatuses] = useState({})
   const [testing, setTesting]   = useState({})
+  const [showPasswords, setShowPasswords] = useState({})
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('connections') || '{}')
-    setConfigs(saved)
     const s = {}
-    for (const k of Object.keys(saved)) s[k] = saved[k]?.connected ? 'connected' : 'idle'
+    for (const k of Object.keys(connections)) s[k] = connections[k]?.connected ? 'connected' : 'idle'
     setStatuses(s)
-  }, [])
+  }, [connections])
+
+  const togglePassword = (fieldKey) => {
+    setShowPasswords(prev => ({ ...prev, [fieldKey]: !prev[fieldKey] }))
+  }
 
   const save = (id, field, value) => {
-    setConfigs(prev => {
-      const next = { ...prev, [id]: { ...prev[id], [field]: value } }
-      localStorage.setItem('connections', JSON.stringify(next))
-      return next
-    })
+    updateConnection(id, { [field]: value, connected: false })
     setStatuses(prev => ({ ...prev, [id]: 'idle' }))
+  }
+
+  const isFieldVisible = (integrationId, fieldKey, currentConfig) => {
+    if (integrationId !== 'llm') return true;
+    const provider = currentConfig?.provider;
+    
+    if (fieldKey === 'provider' || fieldKey === 'apiKey') return true;
+    if (fieldKey.startsWith('ollama') && provider === 'ollama') return true;
+    if (fieldKey.startsWith('groq') && provider === 'groq') return true;
+    if (fieldKey.startsWith('gemini') && provider === 'gemini') return true;
+    if (fieldKey.startsWith('custom') && provider === 'custom') return true;
+    
+    return false;
   }
 
   const testConnection = async (integration) => {
     setTesting(t => ({ ...t, [integration.id]: true }))
     setStatuses(s => ({ ...s, [integration.id]: 'testing' }))
     try {
-      const config = configs[integration.id] || {}
-      let resp
+      const config = connections[integration.id] || {}
       if (integration.id === 'llm') {
-        // Simple local validation for LLM — we can't test without making a paid call
         const hasKey = !!(config.apiKey || config.provider === 'ollama')
         setStatuses(s => ({ ...s, [integration.id]: hasKey ? 'connected' : 'error' }))
-        updateConnected(integration.id, hasKey, config)
+        updateConnection(integration.id, { connected: hasKey })
+        if (hasKey) addToast(`${integration.name} configuration saved!`, 'success')
+        else addToast(`${integration.name} configuration is incomplete.`, 'warning')
         return
       }
-      resp = await fetch('/api/connections/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: integration.id, config })
-      })
-      const data = await resp.json()
-      setStatuses(s => ({ ...s, [integration.id]: data.connected ? 'connected' : 'error' }))
-      updateConnected(integration.id, data.connected, config)
-    } catch {
+      const resp = await connectionService.test(integration.id, config)
+      const isConnected = resp.data.connected
+      setStatuses(s => ({ ...s, [integration.id]: isConnected ? 'connected' : 'error' }))
+      updateConnection(integration.id, { connected: isConnected })
+      
+      if (isConnected) {
+        addToast(`Successfully connected to ${integration.name}!`, 'success')
+      } else {
+        addToast(`Failed to connect to ${integration.name}. Check your credentials.`, 'error')
+      }
+    } catch (e) {
       setStatuses(s => ({ ...s, [integration.id]: 'error' }))
+      addToast(e.response?.data?.error || `Error connecting to ${integration.name}`, 'error')
     } finally {
       setTesting(t => ({ ...t, [integration.id]: false }))
     }
-  }
-
-  const updateConnected = (id, connected, config) => {
-    setConfigs(prev => {
-      const next = { ...prev, [id]: { ...config, connected } }
-      localStorage.setItem('connections', JSON.stringify(next))
-      return next
-    })
   }
 
   const statusMeta = {
@@ -141,29 +112,56 @@ export default function Connectors() {
               </div>
               <div className="card-body">
                 <div className="grid-2">
-                  {integration.fields.map(field => (
-                    <div key={field.key} className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label">{field.label}</label>
-                      {field.type === 'select' ? (
-                        <select
-                          className="form-select"
-                          value={configs[integration.id]?.[field.key] || ''}
-                          onChange={e => save(integration.id, field.key, e.target.value)}
-                        >
-                          <option value="">Select provider…</option>
-                          {field.options.map(o => <option key={o} value={o}>{o.charAt(0).toUpperCase() + o.slice(1)}</option>)}
-                        </select>
-                      ) : (
-                        <input
-                          type={field.type}
-                          className="form-input"
-                          placeholder={field.placeholder}
-                          value={configs[integration.id]?.[field.key] || ''}
-                          onChange={e => save(integration.id, field.key, e.target.value)}
-                        />
-                      )}
-                    </div>
-                  ))}
+                  {integration.fields.map(field => {
+                    if (!isFieldVisible(integration.id, field.key, connections[integration.id])) return null;
+                    
+                    return (
+                      <div key={field.key} className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label">{field.label}</label>
+                        <div style={{ position: 'relative' }}>
+                          {field.type === 'select' ? (
+                            <select
+                              className="form-select"
+                              value={connections[integration.id]?.[field.key] || ''}
+                              onChange={e => save(integration.id, field.key, e.target.value)}
+                            >
+                              <option value="">Select provider…</option>
+                              {field.options.map(o => <option key={o} value={o}>{o.charAt(0).toUpperCase() + o.slice(1)}</option>)}
+                            </select>
+                          ) : (
+                            <>
+                              <input
+                                type={field.type === 'password' ? (showPasswords[field.key] ? 'text' : 'password') : field.type}
+                                className="form-input"
+                                placeholder={field.placeholder}
+                                value={connections[integration.id]?.[field.key] || ''}
+                                onChange={e => save(integration.id, field.key, e.target.value)}
+                              />
+                              {field.type === 'password' && (
+                                <button
+                                  type="button"
+                                  onClick={() => togglePassword(field.key)}
+                                  style={{
+                                    position: 'absolute',
+                                    right: '10px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    color: 'var(--text-muted)'
+                                  }}
+                                >
+                                  {showPasswords[field.key] ? '👁️' : '👁️‍🗨️'}
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

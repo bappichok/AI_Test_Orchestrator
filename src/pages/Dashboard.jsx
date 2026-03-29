@@ -1,36 +1,26 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-
-const STATS = [
-  { icon: '📋', label: 'Test Plans Created', key: 'plans', color: 'var(--primary)' },
-  { icon: '🔍', label: 'Stories Parsed',     key: 'stories', color: 'var(--accent)' },
-  { icon: '🔌', label: 'Active Integrations',key: 'connections', color: 'var(--success)' },
-  { icon: '📤', label: 'Plans Exported',     key: 'exports', color: 'var(--warning)' },
-]
-
-const INTEGRATIONS = [
-  { id: 'jira', name: 'Jira',          icon: '🔷', desc: 'Atlassian Jira Cloud & Server', brand: '#0052CC' },
-  { id: 'ado',  name: 'Azure DevOps',  icon: '🔵', desc: 'Microsoft Azure Boards / ADO',   brand: '#0078D4' },
-  { id: 'xray', name: 'X-Ray',         icon: '🟢', desc: 'Xray Test Management for Jira',  brand: '#00875A' },
-  { id: 'gh',   name: 'GitHub Issues', icon: '⚫', desc: 'GitHub Issues & Milestones',      brand: '#333' },
-]
+import { INTEGRATIONS, STATS_CONFIG } from '../constants'
+import { useConnections } from '../hooks/useConnections'
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const { connections } = useConnections()
   const [history, setHistory] = useState([])
   const [stats, setStats] = useState({ plans: 0, stories: 0, connections: 0, exports: 0 })
 
   useEffect(() => {
     const h = JSON.parse(localStorage.getItem('testPlanHistory') || '[]')
-    const conns = JSON.parse(localStorage.getItem('connections') || '{}')
     setHistory(h.slice(0, 5))
     setStats({
       plans:   h.length,
       stories: h.length,
-      connections: Object.keys(conns).filter(k => conns[k]?.connected).length,
+      connections: Object.keys(connections).filter(k => connections[k]?.connected).length,
       exports: parseInt(localStorage.getItem('exportCount') || '0')
     })
-  }, [])
+  }, [connections])
+
+  const hasConnections = Object.values(connections).some(c => c.connected)
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
@@ -42,6 +32,17 @@ export default function Dashboard() {
           </h1>
           <p>Powered by the B.L.A.S.T. Framework — Generate AI-powered QA Test Plans from any project management tool</p>
         </div>
+
+        {!hasConnections && (
+          <div className="alert alert-info" style={{ marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <strong>🚀 Get Started:</strong> You haven't connected any integrations yet. Connect Jira or Azure DevOps to start fetching stories.
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={() => navigate('/connectors')}>
+              Connect Now
+            </button>
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 12, marginBottom: 32 }}>
           <button className="btn btn-primary btn-lg" onClick={() => navigate('/fetch')}>
@@ -55,7 +56,7 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className="grid-4" style={{ marginBottom: 32 }}>
-        {STATS.map(s => (
+        {STATS_CONFIG.map(s => (
           <div key={s.key} className="stat-card">
             <div className="stat-icon" style={{ background: s.color + '20', color: s.color }}>
               {s.icon}
@@ -74,8 +75,8 @@ export default function Dashboard() {
             <button className="btn btn-ghost btn-sm" onClick={() => navigate('/connectors')}>Manage →</button>
           </div>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {INTEGRATIONS.map(int => {
-              const connected = JSON.parse(localStorage.getItem('connections') || '{}')?.[int.id]?.connected
+            {INTEGRATIONS.slice(0, 4).map(int => {
+              const connected = connections[int.id]?.connected
               return (
                 <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--bg-glass)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
                   <span style={{ fontSize: 22 }}>{int.icon}</span>
@@ -99,24 +100,27 @@ export default function Dashboard() {
             <button className="btn btn-ghost btn-sm" onClick={() => navigate('/history')}>View all →</button>
           </div>
           <div className="card-body">
-            {history.length === 0 ? (
-              <div className="empty-state" style={{ padding: '32px 16px' }}>
-                <div className="empty-icon">📭</div>
-                <div className="empty-title">No plans yet</div>
-                <div className="empty-desc">Fetch a story and generate your first test plan</div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {history.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--bg-glass)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', cursor: 'pointer' }}
-                    onClick={() => navigate('/history')}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{item.story?.id} — {item.story?.title?.substring(0, 40)}{item.story?.title?.length > 40 ? '…' : ''}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{new Date(item.createdAt).toLocaleDateString()}</div>
+            {history.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {history.map((h, i) => (
+                  <div key={i} className="history-item" onClick={() => {
+                    sessionStorage.setItem('viewHistoryPlan', JSON.stringify(h))
+                    navigate('/history')
+                  }} style={{ cursor: 'pointer', padding: '12px', background: 'var(--bg-glass)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', transition: 'var(--transition)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontWeight: 600, fontSize: 14 }}>{h.story?.id || 'Manual'}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(h.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <span className={`badge priority-${item.story?.priority?.toLowerCase()}`}>{item.story?.priority}</span>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {h.story?.title || 'No Title'}
+                    </div>
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div className="empty-state-mini">
+                <div style={{ fontSize: 24, marginBottom: 8 }}>📭</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No test plans generated yet.</div>
               </div>
             )}
           </div>

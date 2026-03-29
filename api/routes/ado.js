@@ -1,23 +1,22 @@
 import express from 'express';
 import axios from 'axios';
+import { resolveAdoCredentials } from '../utils/credentialHandler.js';
+import { successResponse, errorResponse } from '../utils/responseFormatter.js';
 
 const router = express.Router();
 
 // POST /api/ado/fetch — fetch Azure DevOps Work Item by ID
 router.post('/fetch', async (req, res) => {
-  const { workItemId, org, project, token } = req.body;
+  const { workItemId } = req.body;
+  const { org, project, token } = resolveAdoCredentials(req.body);
 
-  const adoOrg = org || process.env.ADO_ORG;
-  const adoProject = project || process.env.ADO_PROJECT;
-  const adoToken = token || process.env.ADO_TOKEN;
-
-  if (!adoOrg || !adoToken || !workItemId) {
-    return res.status(400).json({ error: 'ADO org, token, and workItemId are required.' });
+  if (!org || !token || !workItemId) {
+    return errorResponse(res, 'ADO org, token, and workItemId are required.', 400);
   }
 
   try {
-    const auth = Buffer.from(`:${adoToken}`).toString('base64');
-    const url = `https://dev.azure.com/${adoOrg}/${adoProject ? adoProject + '/' : ''}_apis/wit/workitems/${workItemId}?api-version=7.0&$expand=all`;
+    const auth = Buffer.from(`:${token}`).toString('base64');
+    const url = `https://dev.azure.com/${org}/${project ? project + '/' : ''}_apis/wit/workitems/${workItemId}?api-version=7.0&$expand=all`;
 
     const response = await axios.get(url, {
       headers: { Authorization: `Basic ${auth}`, Accept: 'application/json' }
@@ -27,10 +26,20 @@ router.post('/fetch', async (req, res) => {
     const fields = item.fields;
 
     const descHtml = fields['System.Description'] || '';
-    const descText = stripHtml(descHtml).substring(0, 200);
+    const descText = stripHtml(descHtml);
     const acHtml = fields['Microsoft.VSTS.Common.AcceptanceCriteria'] || '';
     const acText = stripHtml(acHtml);
     const acLines = acText ? acText.split('\n').filter(l => l.trim()) : [];
+
+    // Extract attachments
+    const attachments = (item.relations || [])
+      .filter(rel => rel.rel === 'AttachmentLink')
+      .map(rel => ({
+        name: rel.attributes?.name || 'Attachment',
+        url: rel.url,
+        mimeType: rel.attributes?.resourceType || 'application/octet-stream',
+        size: rel.attributes?.length || 0
+      }));
 
     const flags = [];
     if (acLines.length === 0) flags.push('MISSING_AC');
@@ -41,6 +50,7 @@ router.post('/fetch', async (req, res) => {
       title: fields['System.Title'] || '',
       description: descText,
       acceptance_criteria: acLines,
+      attachments: attachments,
       priority: normalizePriority(fields['Microsoft.VSTS.Common.Priority']),
       type: fields['System.WorkItemType'] || 'User Story',
       epic: fields['System.AreaPath'] || '',
@@ -51,29 +61,27 @@ router.post('/fetch', async (req, res) => {
       flags
     };
 
-    res.json({ success: true, story: normalized });
+    successResponse(res, { story: normalized });
   } catch (err) {
     const status = err.response?.status;
-    if (status === 401) return res.status(401).json({ error: 'Invalid ADO credentials.' });
-    if (status === 404) return res.status(404).json({ error: `Work item ${workItemId} not found.` });
-    res.status(500).json({ error: err.message });
+    if (status === 401) return errorResponse(res, 'Invalid ADO credentials.', 401);
+    if (status === 404) return errorResponse(res, `Work item ${workItemId} not found.`, 404);
+    errorResponse(res, err.message, 500, err);
   }
 });
 
 // POST /api/ado/test — verify connectivity
 router.post('/test', async (req, res) => {
-  const { org, token } = req.body;
-  const adoOrg = org || process.env.ADO_ORG;
-  const adoToken = token || process.env.ADO_TOKEN;
-  if (!adoOrg || !adoToken) return res.json({ connected: false, error: 'Missing credentials' });
+  const { org, token } = resolveAdoCredentials(req.body);
+  if (!org || !token) return errorResponse(res, 'Missing credentials', 400);
   try {
-    const auth = Buffer.from(`:${adoToken}`).toString('base64');
-    await axios.get(`https://dev.azure.com/${adoOrg}/_apis/projects?api-version=7.0`, {
+    const auth = Buffer.from(`:${token}`).toString('base64');
+    await axios.get(`https://dev.azure.com/${org}/_apis/projects?api-version=7.0`, {
       headers: { Authorization: `Basic ${auth}`, Accept: 'application/json' }
     });
-    res.json({ connected: true });
-  } catch {
-    res.json({ connected: false, error: 'Connection failed' });
+    successResponse(res, { connected: true });
+  } catch (err) {
+    successResponse(res, { connected: false, error: 'Connection failed' });
   }
 });
 

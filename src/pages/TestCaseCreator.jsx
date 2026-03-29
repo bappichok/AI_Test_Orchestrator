@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useConnections } from '../hooks/useConnections'
+import { jiraService, generateService } from '../services/api'
 
 export default function TestCaseCreator() {
+  const { connections, isConnected, getLLMConfig } = useConnections()
   const [inputType, setInputType] = useState('jira') // 'jira' or 'manual'
   const [jiraId, setJiraId] = useState('')
   const [manualText, setManualText] = useState('')
@@ -13,6 +16,16 @@ export default function TestCaseCreator() {
 
   // Clear states on unmount
   useEffect(() => {
+    // Check if story was passed from StoryFetcher
+    const storedStory = localStorage.getItem('currentStory')
+    if (storedStory) {
+      try {
+        setStory(JSON.parse(storedStory))
+      } catch (e) {
+        console.error('Failed to load story from localStorage:', e)
+      }
+    }
+
     return () => {
       setStory(null)
       setTestCases(null)
@@ -21,28 +34,18 @@ export default function TestCaseCreator() {
 
   const fetchJira = async () => {
     if (!jiraId.trim()) return
-    setFetching(true); setError(null); setStory(null); setTestCases(null);
+    setFetching(true); setError(null); setStory(null);
 
     try {
-      const connections = JSON.parse(localStorage.getItem('connections') || '{}')
-      const jiraConf = connections.jira || {}
-      if (!jiraConf.baseUrl || !jiraConf.email || !jiraConf.apiToken) {
+      if (!isConnected('jira')) {
         throw new Error('Jira is not configured. Go to Integrations to set it up.')
       }
 
-      const resp = await fetch(`/api/jira/fetch?id=${jiraId}`, {
-        headers: {
-          'x-jira-url': jiraConf.baseUrl,
-          'x-jira-email': jiraConf.email,
-          'x-jira-token': jiraConf.apiToken
-        }
-      })
-      const data = await resp.json()
-      if (!resp.ok) throw new Error(data.error || 'Failed to fetch Jira issue')
-      
-      setStory(data.story)
+      const jiraConf = connections.jira || {}
+      const resp = await jiraService.fetch(jiraId, jiraConf)
+      setStory(resp.data.story)
     } catch (e) {
-      setError(e.message)
+      setError(e.response?.data?.error || e.message)
     } finally {
       setFetching(false)
     }
@@ -70,61 +73,63 @@ export default function TestCaseCreator() {
     setGenerating(true); setError(null); setTestCases(null);
 
     try {
-      const connections = JSON.parse(localStorage.getItem('connections') || '{}')
-      const llmConfig = connections.llm || {}
-
-      const resp = await fetch('/api/generate/test-cases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          story,
-          settings: {
-            llmProvider: llmConfig.provider || 'openai',
-            apiKey: llmConfig.apiKey,
-            ollamaUrl: llmConfig.ollamaUrl,
-            ollamaModel: llmConfig.ollamaModel,
-            groqModel: llmConfig.groqModel,
-            geminiModel: llmConfig.geminiModel,
-            lmStudioUrl: llmConfig.lmStudioUrl,
-            lmStudioModel: llmConfig.lmStudioModel
-          }
-        })
+      const llmConfig = getLLMConfig()
+      const resp = await generateService.testCases(story, {
+        llmProvider: llmConfig.provider || 'openai',
+        apiKey: llmConfig.apiKey,
+        ollamaUrl: llmConfig.ollamaUrl,
+        ollamaModel: llmConfig.ollamaModel,
+        groqModel: llmConfig.groqModel,
+        geminiModel: llmConfig.geminiModel,
+        lmStudioUrl: llmConfig.lmStudioUrl,
+        lmStudioModel: llmConfig.lmStudioModel
       })
-      const data = await resp.json()
-      if (!resp.ok) throw new Error(data.error || 'Test case generation failed')
+      
+      const data = resp.data
+      if (!data.testCases || !Array.isArray(data.testCases) || data.testCases.length === 0) {
+        throw new Error('API returned no test cases')
+      }
 
       setTestCases(data.testCases)
+      localStorage.setItem('generatedTestCases', JSON.stringify(data.testCases))
+      localStorage.setItem('currentStory', JSON.stringify(story))
+      console.log('✅ Test cases and story saved to localStorage:', data.testCases.length, 'cases')
     } catch (e) {
-      setError(e.message)
+      setError(e.response?.data?.error || e.message)
     } finally {
       setGenerating(false)
     }
   }
 
   return (
-    <div style={{ animation: 'fadeIn 0.4s ease' }}>
+    <div className="page-container">
       <div className="page-header">
-        <div className="breadcrumb"><span>Home</span><span className="sep">/</span><span>Create Cases</span></div>
-        <h1>🧪 Dedicated Test Case Generator</h1>
-        <p>Generate precise, executable Functional & Non-Functional API/Web test cases directly into a tabular Jira format.</p>
+        <h1>🧪 Test Case Generator</h1>
+        <p>Generate precise, executable test cases from stories and requirements</p>
       </div>
 
-      {error && <div className="alert alert-error" style={{ marginBottom: 20 }}>❌ {error}</div>}
+      {error && (
+        <div className="card error-box">
+          ❌ {error}
+        </div>
+      )}
 
-      <div className="grid-2" style={{ alignItems: 'start' }}>
+      <div className="content-grid">
         {/* Left column: Input */}
         <div className="card">
-          <div className="card-header">
-            <h3>Input Requirement</h3>
+          <h2>Input Requirement</h2>
+          
+          <div className="form-group">
+            <label>Source Type</label>
             <div style={{ display: 'flex', gap: 10 }}>
               <button 
-                className={`btn btn-sm ${inputType === 'jira' ? 'btn-primary' : 'btn-secondary'}`}
+                className={`btn ${inputType === 'jira' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setInputType('jira')}
               >
                 Jira ID
               </button>
               <button 
-                className={`btn btn-sm ${inputType === 'manual' ? 'btn-primary' : 'btn-secondary'}`}
+                className={`btn ${inputType === 'manual' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setInputType('manual')}
               >
                 Paste Context
@@ -132,23 +137,27 @@ export default function TestCaseCreator() {
             </div>
           </div>
           
-          <div className="card-body">
+          <div className="form-group">
             {inputType === 'jira' ? (
-              <div style={{ display: 'flex', gap: 10 }}>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  placeholder="e.g. AUTH-123" 
-                  value={jiraId}
-                  onChange={e => setJiraId(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && fetchJira()}
-                />
-                <button className={`btn btn-primary ${fetching ? 'btn-loading' : ''}`} onClick={fetchJira} disabled={fetching || !jiraId.trim()}>
-                  {fetching ? '' : 'Fetch'}
-                </button>
-              </div>
+              <>
+                <label>Jira Issue ID</label>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="e.g. AUTH-123" 
+                    value={jiraId}
+                    onChange={e => setJiraId(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && fetchJira()}
+                  />
+                  <button className={`btn btn-primary`} onClick={fetchJira} disabled={fetching || !jiraId.trim()}>
+                    {fetching ? '⏳ Fetching...' : '🔍 Fetch'}
+                  </button>
+                </div>
+              </>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <>
+                <label>Paste Your Requirement</label>
                 <textarea 
                   className="form-input" 
                   placeholder="Paste your user story, acceptance criteria, or requirements here..."
@@ -156,164 +165,157 @@ export default function TestCaseCreator() {
                   value={manualText}
                   onChange={e => setManualText(e.target.value)}
                 />
-                <button className="btn btn-primary" onClick={loadManual} disabled={!manualText.trim()}>
-                  Load Requirement
+                <button className="btn btn-primary" style={{ marginTop: '10px' }} onClick={loadManual} disabled={!manualText.trim()}>
+                  📝 Load Requirement
                 </button>
-              </div>
-            )}
-
-            {story && (
-              <div style={{ marginTop: 24, padding: 16, backgroundColor: 'var(--bg-elevated)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <h4 style={{ margin: 0 }}>Loaded Context</h4>
-                  <span className="badge badge-info">{story.id}</span>
-                </div>
-                {story.title && <div style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 8 }}>{story.title}</div>}
-                
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                  {story.description || 'No description provided.'}
-                </div>
-
-                <button
-                  className={`btn btn-primary ${generating ? 'btn-loading' : ''}`}
-                  style={{ width: '100%', marginTop: 20, justifyContent: 'center' }}
-                  onClick={generateCases}
-                  disabled={generating}
-                >
-                  {generating ? '' : '🤖 Generate Jira Tabular Test Cases'}
-                </button>
-              </div>
+              </>
             )}
           </div>
+
+          {story && (
+            <div className="info-box">
+              <strong>✅ Story Loaded</strong>
+              <div style={{ marginTop: '12px', fontSize: '14px' }}>
+                <div><strong>ID:</strong> {story.id}</div>
+                <div><strong>Title:</strong> {story.title}</div>
+                <div><strong>Type:</strong> {story.type}</div>
+                <div><strong>Priority:</strong> {story.priority}</div>
+                {story.description && (
+                  <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
+                    <strong>Description:</strong>
+                    <div style={{ marginTop: '6px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      {story.description}
+                    </div>
+                  </div>
+                )}
+                {story.acceptance_criteria?.length > 0 && (
+                  <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
+                    <strong>Acceptance Criteria ({story.acceptance_criteria.length}):</strong>
+                    <ul style={{ margin: '6px 0 0 20px', fontSize: '13px' }}>
+                      {story.acceptance_criteria.map((ac, i) => (
+                        <li key={i} style={{ marginBottom: '4px' }}>{ac}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {story.attachments?.length > 0 && (
+                  <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
+                    <strong>📎 Attachments ({story.attachments.length}):</strong>
+                    <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {story.attachments.map((att, i) => (
+                        <div key={i} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span>{att.mimeType?.includes('image') ? '🖼️' : '📄'}</span>
+                          <span>{att.name}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>({(att.size / 1024).toFixed(1)} KB)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {story && (
+            <div className="form-group">
+              <button
+                className="btn btn-success"
+                style={{ width: '100%' }}
+                onClick={generateCases}
+                disabled={generating || !story}
+              >
+                {generating ? '⏳ Generating...' : '🤖 Generate Test Cases'}
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Right column: Animation or blank space if not generating */}
-        <div>
-          {generating && (
+        {/* Right column: Test Cases Display */}
+        {testCases && testCases.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div className="card">
-              <div className="generating-animation">
-                <div className="spinner spinner-lg" />
-                <div className="label">🤖 AI processing requirements…</div>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>
-                  Extracting facts, tracing Acceptance Criteria, and generating tabular Jira artifacts.
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ margin: 0 }}>Generated Test Cases ({testCases.length})</h2>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => {
+                    const blob = new Blob([JSON.stringify(testCases, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `test-cases-${story.id}.json`;
+                    a.click();
+                  }}>📥 Export JSON</button>
                 </div>
               </div>
             </div>
-          )}
 
-          {!generating && !testCases && !error && (
-            <div className="card">
-              <div className="empty-state">
-                <div className="empty-icon">🧪</div>
-                <h3>Ready to Generate</h3>
-                <p>Load a requirement and hit generate to construct your Jira test case table.</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Full width bottom area for the table! */}
-      {testCases && !generating && (
-        <div style={{ marginTop: 24, animation: 'slideUp 0.3s ease' }}>
-          
-          {/* Coverage Report Card */}
-          {story?.acceptance_criteria?.length > 0 && (
-            <div className="card" style={{ marginBottom: 20 }}>
-              <div className="card-header">
-                <h3 style={{ margin: 0 }}>🎯 AC Coverage Matrix</h3>
-              </div>
-              <div className="card-body" style={{ padding: '0 20px 20px' }}>
-                <div style={{ display: 'grid', gap: '8px' }}>
-                  {story.acceptance_criteria.map((ac, idx) => {
-                    const acNum = idx + 1;
-                    const coveringCases = testCases.filter(tc => tc.ac_traced?.includes(acNum));
-                    const isCovered = coveringCases.length > 0;
-                    return (
-                      <div key={idx} style={{ 
-                        display: 'flex', alignItems: 'flex-start', gap: 12, 
-                        padding: 12, backgroundColor: 'var(--bg-elevated)', 
-                        borderRadius: 6, borderLeft: `4px solid ${isCovered ? 'var(--success)' : 'var(--error)'}`
-                      }}>
-                        <div style={{ fontSize: 18, marginTop: 2 }}>{isCovered ? '✅' : '⚠️'}</div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>AC #{acNum}</div>
-                          <div style={{ fontSize: 14 }}>{ac}</div>
-                          {isCovered ? (
-                            <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: 12, color: 'var(--text-muted)', marginRight: 4 }}>Covered by:</span>
-                              {coveringCases.map(tc => (
-                                <span key={tc.id} className="badge badge-info">{tc.id}</span>
-                              ))}
-                            </div>
-                          ) : (
-                            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--error)' }}>
-                              Not covered by any test case.
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
+            {testCases.map((tc, idx) => (
+              <div key={idx} className="card test-case-card" style={{ animation: `fadeIn 0.3s ease forwards ${idx * 0.05}s`, opacity: 0 }}>
+                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '16px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <span className="story-id" style={{ fontSize: '14px' }}>{tc.id || tc.ID || `TC-${idx + 1}`}</span>
+                      <span className={`badge priority-${(tc.priority || 'Medium').toLowerCase()}`}>{tc.priority || 'Medium'}</span>
+                      <span className="badge badge-muted">{tc.type || 'Functional'}</span>
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text-primary)' }}>{tc.title || 'Test Case'}</h3>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '200px' }}>
+                    {(tc.tags || []).map(tag => (
+                      <span key={tag} className="tag" style={{ fontSize: '10px' }}>{tag}</span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
-
-          <div className="card">
-            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0 }}>Generated Test Cases (Jira Tabular Format)</h3>
-              <span className="badge badge-success">{testCases.length} Cases Generated</span>
-            </div>
-          
-          <div style={{ overflowX: 'auto', padding: '0 20px 20px 20px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                  <th style={{ padding: '12px 8px', color: 'var(--text-muted)' }}>ID</th>
-                  <th style={{ padding: '12px 8px', color: 'var(--text-muted)', minWidth: 200 }}>Title & Preconditions</th>
-                  <th style={{ padding: '12px 8px', color: 'var(--text-muted)', minWidth: 300 }}>Test Steps (Action & Input)</th>
-                  <th style={{ padding: '12px 8px', color: 'var(--text-muted)', minWidth: 250 }}>Expected Result</th>
-                  <th style={{ padding: '12px 8px', color: 'var(--text-muted)' }}>Priority</th>
-                </tr>
-              </thead>
-              <tbody>
-                {testCases.map((tc, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid var(--border)', verticalAlign: 'top' }}>
-                    <td style={{ padding: '16px 8px', fontWeight: 'bold', color: 'var(--primary-light)' }}>
-                      {tc.id}
-                    </td>
-                    <td style={{ padding: '16px 8px' }}>
-                      <div style={{ fontWeight: 600, marginBottom: 8 }}>{tc.title}</div>
-                      {tc.preconditions && (
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '6px', background: 'var(--bg-elevated)', borderRadius: 4 }}>
-                          <strong style={{ display: 'block', marginBottom: 2 }}>Preconditions:</strong>
-                          {tc.preconditions}
-                        </div>
-                      )}
-                      {tc.type && <span className="badge badge-info" style={{ marginTop: 8, display: 'inline-block' }}>{tc.type}</span>}
-                    </td>
-                    <td style={{ padding: '16px 8px' }}>
-                      <ol style={{ margin: 0, paddingLeft: 16, color: 'var(--text-primary)' }}>
-                        {tc.steps?.map((step, i) => (
-                          <li key={i} style={{ marginBottom: 4 }}>{step}</li>
+                
+                <div className="card-body" style={{ padding: 0 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div>
+                      <div className="story-section-label" style={{ color: 'var(--primary-light)' }}>Steps</div>
+                      <ol style={{ paddingLeft: '20px', margin: 0, fontSize: '14px', color: 'var(--text-secondary)' }}>
+                        {(tc.steps || []).map((step, i) => (
+                          <li key={i} style={{ marginBottom: '6px' }}>{step}</li>
                         ))}
                       </ol>
-                    </td>
-                    <td style={{ padding: '16px 8px', color: 'var(--text-secondary)' }}>
-                      {tc.expected}
-                    </td>
-                    <td style={{ padding: '16px 8px' }}>
-                      <span className={`badge priority-${(tc.priority || '').toLowerCase()}`}>{tc.priority}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <div>
+                      <div className="story-section-label" style={{ color: 'var(--success)' }}>Expected Results</div>
+                      <ul style={{ paddingLeft: '20px', margin: 0, fontSize: '14px', color: 'var(--text-secondary)', listStyleType: 'none' }}>
+                        {(tc.expected || []).map((exp, i) => (
+                          <li key={i} style={{ marginBottom: '6px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                            <span style={{ color: 'var(--success)' }}>✓</span>
+                            <span>{exp}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {tc.ac_traced && tc.ac_traced.length > 0 && (
+                    <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Traces to AC:</span>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {tc.ac_traced.map(ac => (
+                          <span key={ac} className="badge badge-info" style={{ fontSize: '10px' }}>AC-{ac}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-        </div>
-      )}
+        )}
+
+        {!testCases && (
+          <div className="card">
+            <div className="empty-state">
+              <div className="empty-icon">🧪</div>
+              <h3>Ready to Generate</h3>
+              <p>Load a requirement and hit generate to create test cases.</p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

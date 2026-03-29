@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useConnections } from '../hooks/useConnections'
+import { jiraService, adoService } from '../services/api'
 
 const SOURCES = [
   { id: 'jira', label: 'Jira',         icon: '🔷', placeholder: 'e.g. PROJ-101' },
@@ -66,6 +68,7 @@ function FlagBanner({ flags }) {
 }
 
 function StoryCard({ story }) {
+  console.log('StoryCard rendering with story:', story)
   const priorityClass = `priority-${story.priority?.toLowerCase()}`
   return (
     <div className="story-card">
@@ -99,6 +102,29 @@ function StoryCard({ story }) {
             </ul>
           </div>
         )}
+        {story.attachments?.length > 0 && (
+          <div className="story-section">
+            <div className="story-section-label">📎 Attachments ({story.attachments.length})</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {story.attachments.map((att, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px', backgroundColor: 'var(--bg-elevated)', borderRadius: '4px' }}>
+                  <span style={{ fontSize: 18 }}>
+                    {att.mimeType?.includes('image') ? '🖼️' : '📄'}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 500 }}>{att.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                      {(att.size / 1024).toFixed(1)} KB
+                    </div>
+                  </div>
+                  <a href={att.url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary">
+                    🔗 View
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -106,13 +132,12 @@ function StoryCard({ story }) {
 
 export default function StoryFetcher() {
   const navigate = useNavigate()
+  const { connections, isConnected } = useConnections()
   const [source, setSource] = useState('jira')
   const [storyId, setStoryId] = useState('')
   const [loading, setLoading] = useState(false)
   const [story, setStory]     = useState(null)
   const [error, setError]     = useState(null)
-
-  const connections = JSON.parse(localStorage.getItem('connections') || '{}')
 
   const fetchStory = async () => {
     if (!storyId.trim()) return
@@ -127,22 +152,22 @@ export default function StoryFetcher() {
         return
       }
 
-      const endpoint = source === 'jira' ? '/api/jira/fetch' : '/api/ado/fetch'
-      const creds = connections[source] || {}
-      const body = source === 'jira'
-        ? { issueId: storyId, ...creds }
-        : { workItemId: storyId, ...creds }
+      if (!isConnected(source)) {
+        throw new Error(`${source.toUpperCase()} is not connected. Please go to Integrations to set it up.`)
+      }
 
-      const resp = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      })
-      const data = await resp.json()
-      if (!resp.ok) throw new Error(data.error || 'Fetch failed')
-      setStory(data.story)
+      const creds = connections[source] || {}
+      let resp;
+      if (source === 'jira') {
+        resp = await jiraService.fetch(storyId, creds)
+      } else {
+        resp = await adoService.fetch(storyId, creds)
+      }
+
+      console.log('✅ Story fetched:', resp.data.story)
+      setStory(resp.data.story)
     } catch (e) {
-      setError(e.message)
+      setError(e.response?.data?.error || e.message)
     } finally {
       setLoading(false)
     }
@@ -152,6 +177,12 @@ export default function StoryFetcher() {
     if (!story) return
     sessionStorage.setItem('pendingStory', JSON.stringify(story))
     navigate('/create')
+  }
+
+  const handleCreateCases = () => {
+    if (!story) return
+    localStorage.setItem('currentStory', JSON.stringify(story))
+    navigate('/test-cases')
   }
 
   const currentSource = SOURCES.find(s => s.id === source)
@@ -225,10 +256,19 @@ export default function StoryFetcher() {
       {/* Story Result */}
       {story && (
         <div style={{ animation: 'slideUp 0.3s ease' }}>
+          <div style={{ marginBottom: 12, padding: 12, backgroundColor: '#f0f0f0', borderRadius: 4, fontSize: 11, fontFamily: 'monospace', maxHeight: 100, overflow: 'auto' }}>
+            <details>
+              <summary>🔍 Debug: Story Data</summary>
+              <pre>{JSON.stringify(story, null, 2)}</pre>
+            </details>
+          </div>
           <StoryCard story={story} />
-          <div style={{ marginTop: 20, display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+          <div style={{ marginTop: 20, display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={() => { setStory(null); setStoryId('') }}>
               🔄 Fetch Another
+            </button>
+            <button className="btn btn-secondary" onClick={handleCreateCases}>
+              🧪 Create Test Cases
             </button>
             <button className="btn btn-primary btn-lg" onClick={handleGenerate}>
               📋 Generate Test Plan →
