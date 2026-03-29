@@ -1,134 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useConnections } from '../hooks/useConnections'
 import { jiraService, adoService } from '../services/api'
+import StoryCard from '../components/StoryCard.jsx'
+import { MOCK_STORIES } from '../utils/mockData.js'
 
 const SOURCES = [
   { id: 'jira', label: 'Jira',         icon: '🔷', placeholder: 'e.g. PROJ-101' },
   { id: 'ado',  label: 'Azure DevOps', icon: '🔵', placeholder: 'e.g. 4521' },
   { id: 'mock', label: 'Demo / Mock',  icon: '🧪', placeholder: 'e.g. DEMO-1' },
 ]
-
-const MOCK_STORIES = {
-  'DEMO-1': {
-    id: 'DEMO-1', title: 'User Login with Email and Password',
-    description: 'As a registered user, I want to log in using my email and password so that I can access my account dashboard and personalized settings.',
-    acceptance_criteria: [
-      'Email must be in valid format (user@domain.com)',
-      'Password minimum 8 characters with at least one uppercase and one number',
-      'User is locked out after 5 consecutive failed login attempts',
-      'Successful login redirects to Dashboard',
-      'Session expires after 30 minutes of inactivity',
-      'Remember Me option extends session to 30 days'
-    ],
-    priority: 'High', type: 'Story', epic: 'Authentication',
-    labels: ['auth', 'login', 'security'],
-    status: 'In Progress', assignee: 'Jane Smith', reporter: 'Product Owner',
-    flags: []
-  },
-  'DEMO-2': {
-    id: 'DEMO-2', title: 'Password Reset via Email',
-    description: 'User can reset password.',
-    acceptance_criteria: [],
-    priority: 'Medium', type: 'Story', epic: 'Authentication',
-    labels: ['auth', 'password'],
-    status: 'Backlog', assignee: 'Unassigned', reporter: 'QA Lead',
-    flags: ['MISSING_AC', 'VAGUE_DESC']
-  },
-  'DEMO-3': {
-    id: 'DEMO-3', title: 'Product Search with Filters',
-    description: 'As a shopper, I want to search for products using keywords and apply filters (category, price range, brand, rating) so I can quickly find relevant items.',
-    acceptance_criteria: [
-      'Search returns results within 500ms',
-      'Filters can be combined (AND logic)',
-      'No results state shows suggestions',
-      'Search is case-insensitive',
-      'Minimum 3 characters required to trigger search'
-    ],
-    priority: 'Critical', type: 'Story', epic: 'Product Catalog',
-    labels: ['search', 'frontend', 'performance'],
-    status: 'Ready for QA', assignee: 'Bob Johnson', reporter: 'Product Manager',
-    flags: []
-  }
-}
-
-function FlagBanner({ flags }) {
-  if (!flags?.length) return null
-  return (
-    <div>
-      {flags.map(f => (
-        <div key={f} className="flag-warning">
-          ⚠️ <strong>{f === 'MISSING_AC' ? 'Missing Acceptance Criteria' : 'Vague Description'}</strong>
-          {f === 'MISSING_AC' && ' — Test plan will include placeholder AC. Please update the story.'}
-          {f === 'VAGUE_DESC' && ' — Description has fewer than 20 words. Some test scenarios may be broad.'}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function StoryCard({ story }) {
-  console.log('StoryCard rendering with story:', story)
-  const priorityClass = `priority-${story.priority?.toLowerCase()}`
-  return (
-    <div className="story-card">
-      <div className="story-card-header">
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-            <span className="story-id">{story.id}</span>
-            <span className={`badge ${priorityClass}`}>{story.priority}</span>
-            <span className="badge badge-muted">{story.type}</span>
-          </div>
-          <div className="story-title">{story.title}</div>
-          <div className="story-meta">
-            {story.epic && <span className="tag">📁 {story.epic}</span>}
-            {story.assignee && <span className="tag">👤 {story.assignee}</span>}
-            {story.status  && <span className="tag">🔄 {story.status}</span>}
-            {story.labels?.map(l => <span key={l} className="tag"># {l}</span>)}
-          </div>
-        </div>
-      </div>
-      <div className="story-body">
-        <FlagBanner flags={story.flags} />
-        <div className="story-section">
-          <div className="story-section-label">Description</div>
-          <div className="story-desc">{story.description || 'No description provided.'}</div>
-        </div>
-        {story.acceptance_criteria?.length > 0 && (
-          <div className="story-section">
-            <div className="story-section-label">Acceptance Criteria ({story.acceptance_criteria.length})</div>
-            <ul className="ac-list">
-              {story.acceptance_criteria.map((ac, i) => <li key={i}>{ac}</li>)}
-            </ul>
-          </div>
-        )}
-        {story.attachments?.length > 0 && (
-          <div className="story-section">
-            <div className="story-section-label">📎 Attachments ({story.attachments.length})</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {story.attachments.map((att, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px', backgroundColor: 'var(--bg-elevated)', borderRadius: '4px' }}>
-                  <span style={{ fontSize: 18 }}>
-                    {att.mimeType?.includes('image') ? '🖼️' : '📄'}
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500 }}>{att.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                      {(att.size / 1024).toFixed(1)} KB
-                    </div>
-                  </div>
-                  <a href={att.url} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-secondary">
-                    🔗 View
-                  </a>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
 
 export default function StoryFetcher() {
   const navigate = useNavigate()
@@ -164,7 +45,6 @@ export default function StoryFetcher() {
         resp = await adoService.fetch(storyId, creds)
       }
 
-      console.log('✅ Story fetched:', resp.data.story)
       setStory(resp.data.story)
     } catch (e) {
       setError(e.response?.data?.error || e.message)
@@ -189,16 +69,20 @@ export default function StoryFetcher() {
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      <div className="page-header">
-        <div className="breadcrumb"><span>Home</span><span className="sep">/</span><span>Fetch Story</span></div>
-        <h1>🔍 Fetch Story</h1>
-        <p>Connect to your project management tool and fetch a story to begin QA extraction.</p>
+      <div className="dashboard-hero" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #22d3ee 100%)', padding: '40px', marginBottom: '32px' }}>
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '6px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: '800', letterSpacing: '1px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+            🔍 INGESTION ENGINE
+          </div>
+          <h1 style={{ fontSize: '42px', fontWeight: '900', letterSpacing: '-1.5px', margin: '0 0 8px 0', textShadow: '0 8px 24px rgba(0,0,0,0.2)', lineHeight: '1.1' }}>Story Origin Fetcher</h1>
+          <p style={{ fontSize: '18px', opacity: 0.9, maxWidth: '600px', fontWeight: '500', lineHeight: '1.6', margin: 0 }}>Connect to Jira or Azure DevOps to instantly import complex tickets for analysis and decomposition.</p>
+        </div>
       </div>
 
       {/* Source Selector */}
-      <div className="card" style={{ marginBottom: 24 }}>
-        <div className="card-header"><h3>Select Source</h3></div>
-        <div className="card-body">
+      <div className="premium-card" style={{ marginBottom: 32 }}>
+        <h2>Database Connectivity</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
             {SOURCES.map(s => (
               <button
@@ -256,12 +140,6 @@ export default function StoryFetcher() {
       {/* Story Result */}
       {story && (
         <div style={{ animation: 'slideUp 0.3s ease' }}>
-          <div style={{ marginBottom: 12, padding: 12, backgroundColor: '#f0f0f0', borderRadius: 4, fontSize: 11, fontFamily: 'monospace', maxHeight: 100, overflow: 'auto' }}>
-            <details>
-              <summary>🔍 Debug: Story Data</summary>
-              <pre>{JSON.stringify(story, null, 2)}</pre>
-            </details>
-          </div>
           <StoryCard story={story} />
           <div style={{ marginTop: 20, display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <button className="btn btn-secondary" onClick={() => { setStory(null); setStoryId('') }}>

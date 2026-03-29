@@ -1,6 +1,48 @@
+# Dependencies
 node_modules/
+.pnp
+.pnp.js
+
+# Production
 dist/
-.env
+build/
+
+# Testing & Coverage
+coverage/
+.nyc_output
 .tmp/
+
+# Logs
+logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# IDE and OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Frameworks / Orchestrator specifics
+.vercel/
+BLAST/
+Test_Repo/
+.playwright-mcp/
+.node_modules_old/

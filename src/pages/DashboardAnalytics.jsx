@@ -1,14 +1,72 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useToast } from '../components/Toast'
+
+const MetricGridBox = ({ label, value, icon, gradient, delay }) => (
+// ... Rest of the file
+  <div className="premium-metric" style={{ animation: `slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s backwards` }}>
+    <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '160px', height: '160px', background: gradient, filter: 'blur(50px)', opacity: 0.15, borderRadius: '50%', zIndex: '-1' }} />
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>{label}</div>
+      <div style={{ fontSize: '24px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '18px', boxShadow: '0 8px 16px rgba(0,0,0,0.06)' }}>{icon}</div>
+    </div>
+    <div style={{ fontSize: '56px', fontWeight: '900', color: 'var(--text-primary)', letterSpacing: '-2px', marginTop: 'auto', lineHeight: '1' }}>{value}</div>
+  </div>
+);
+
+const PriorityGauge = ({ label, value, color, delay }) => {
+  const maxValue = 10
+  const percentage = Math.min((value / maxValue) * 100, 100)
+  return (
+    <div style={{ marginBottom: '32px', animation: `fadeIn 0.6s ease ${delay}s backwards` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px', fontSize: '16px', fontWeight: '800' }}>
+        <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
+        <span style={{ color: color, background: `${color}15`, padding: '4px 16px', borderRadius: '12px', border: `1px solid ${color}30`, boxShadow: `0 4px 12px ${color}15` }}>{value} Incidents</span>
+      </div>
+      <div className="priority-bar-container">
+        <div className="priority-bar-fill" style={{
+          width: `${percentage}%`,
+          background: `linear-gradient(90deg, ${color}90, ${color})`,
+          boxShadow: `0 0 20px ${color}60`,
+          transition: 'width 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.5s'
+        }} />
+      </div>
+    </div>
+  )
+}
+
+const TagBadge = ({ label, value }) => {
+  if (value === 0) return null
+  return (
+    <div className="tag-pill" style={{ margin: '0 12px 12px 0' }}>
+      <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
+      <span style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', background: 'var(--bg-elevated)', padding: '4px 12px', borderRadius: '100px', border: '1px solid var(--border)' }}>{value}</span>
+    </div>
+  )
+}
+
+function getPriorityColorSpec(priority) {
+  const specs = {
+    'critical': { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)' },
+    'high':     { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
+    'medium':   { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
+    'low':      { color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' }
+  }
+  return specs[priority?.toLowerCase()] || { color: 'var(--text-muted)', bg: 'rgba(100,116,139,0.12)' }
+}
 
 export default function DashboardAnalytics() {
+  const { addToast } = useToast()
+  
   const [analytics, setAnalytics] = useState(null)
   const [testCases, setTestCases] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  
+  const hasFetched = useRef(false)
 
   useEffect(() => {
-    // Only call once
-    if (!analytics && !loading) {
+    if (!analytics && !loading && !hasFetched.current) {
+      hasFetched.current = true
       loadDashboard()
     }
   }, [])
@@ -21,7 +79,7 @@ export default function DashboardAnalytics() {
     try {
       const stored = localStorage.getItem('generatedTestCases')
       if (!stored) {
-        setError('❌ No test cases found. Generate test cases in the Create Cases section first.')
+        setError('No test cases found. Generate test cases in the Create Cases section first.')
         setLoading(false)
         return
       }
@@ -29,7 +87,6 @@ export default function DashboardAnalytics() {
       const testCasesData = JSON.parse(stored)
       setTestCases(testCasesData)
 
-      // Generate analytics
       const connections = JSON.parse(localStorage.getItem('connections') || '{}')
       const llmConfig = connections.llm || {}
 
@@ -55,168 +112,206 @@ export default function DashboardAnalytics() {
       if (!response.ok) throw new Error(data.error || 'Analytics generation failed')
 
       setAnalytics(data.analytics)
+      addToast('Analytics refreshed successfully!', 'success')
     } catch (e) {
       setError(e.message)
+      addToast('Failed to compile dashboard metrics', 'error')
     } finally {
       setLoading(false)
     }
   }
 
-  if (loading) return <div className="page-container"><p>⏳ Loading dashboard...</p></div>
+  if (loading && !analytics) return (
+    <div className="page-container" style={{ display: 'flex', height: '60vh', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div className="spinner spinner-lg" style={{ width: 64, height: 64, borderWidth: 6, margin: '0 auto' }}></div>
+        <p style={{ marginTop: 32, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>Compiling Matrix Engine...</p>
+        <p style={{ color: 'var(--text-muted)' }}>Analyzing live coverage data via AI proxy</p>
+      </div>
+    </div>
+  )
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <h1>📊 QA Dashboard</h1>
-        <p>Test case coverage and analytics</p>
-        <button onClick={loadDashboard} className="btn btn-secondary">🔄 Refresh</button>
+    <div className="page-container" style={{ padding: '0 16px' }}>
+
+      {/* ── Stunning Hero Header ──────────────────────────── */}
+      <div className="dashboard-hero">
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '24px' }}>
+            <div>
+              <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '6px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: '800', letterSpacing: '1px', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                ✨ EXPERT INTELLIGENCE
+              </div>
+              <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '-1.5px', margin: '0 0 12px 0', textShadow: '0 8px 24px rgba(0,0,0,0.2)', lineHeight: '1.1' }}>QA Master Dashboard</h1>
+              <p style={{ fontSize: '18px', opacity: 0.9, maxWidth: '600px', fontWeight: '500', lineHeight: '1.6', margin: 0 }}>Advanced real-time statistical evaluation, risk matrices, and global traceability coverage powered by LLMs.</p>
+            </div>
+            <button 
+              onClick={loadDashboard} 
+              disabled={loading}
+              style={{ 
+                background: 'white', 
+                color: 'var(--primary)', 
+                padding: '18px 40px', 
+                borderRadius: '100px', 
+                fontSize: '16px', 
+                fontWeight: '800', 
+                boxShadow: '0 20px 40px rgba(0,0,0,0.2)', 
+                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', 
+                border: 'none',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transform: loading ? 'scale(0.95)' : 'scale(1)'
+              }} 
+            >
+              {loading ? '🔄 Compiling Matrix...' : '⚡ Refresh Live Data'}
+            </button>
+          </div>
+        </div>
       </div>
 
       {error && (
-        <div className="card error-box">
-          ❌ {error}
+        <div className="premium-card" style={{ marginBottom: 40, background: 'rgba(239, 68, 68, 0.05)', borderLeft: '6px solid var(--danger)' }}>
+          <h2 style={{ color: 'var(--danger)', margin: 0, fontSize: '20px' }}>⚠️ System Alert: {error}</h2>
         </div>
       )}
 
       {analytics && (
         <>
           {/* ── Summary Section ──────────────────────────── */}
-          <div className="content-grid">
-            <div className="card">
-              <h2>📈 Test Summary</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
-                <div className="metric-box">
-                  <div className="metric-label">Total Test Cases</div>
-                  <div className="metric-value">{analytics.summary.total}</div>
-                </div>
-
-                <div className="metric-box">
-                  <div className="metric-label">Stories Covered</div>
-                  <div className="metric-value">{analytics.coverage.stories_covered}</div>
-                </div>
-
-                <div className="metric-box">
-                  <div className="metric-label">Coverage %</div>
-                  <div className="metric-value">{Number(analytics.coverage.coverage_percent).toFixed(1)}%</div>
-                </div>
-
-                <div className="metric-box">
-                  <div className="metric-label">Avg per Story</div>
-                  <div className="metric-value">{Number(analytics.coverage.avg_cases_per_story).toFixed(1)}</div>
-                </div>
+          <div className="content-grid" style={{ marginBottom: 40 }}>
+            <div className="premium-card">
+              <h2>📈 Velocity Matrix</h2>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '32px' }}>
+                <MetricGridBox delay={0.1} icon="⚡" gradient="var(--primary)" label="Total Executions" value={analytics.summary.total} />
+                <MetricGridBox delay={0.2} icon="🎯" gradient="var(--success)" label="Features Covered" value={analytics.coverage.stories_covered} />
+                <MetricGridBox delay={0.3} icon="🛡" gradient="var(--info)" label="Traceability" value={`${Number(analytics.coverage.coverage_percent).toFixed(1)}%`} />
+                <MetricGridBox delay={0.4} icon="🧬" gradient="var(--warning)" label="Avg Density" value={Number(analytics.coverage.avg_cases_per_story).toFixed(1)} />
               </div>
             </div>
 
             {/* ── Priority Breakdown ──────────────────────── */}
-            <div className="card">
-              <h2>🎯 By Priority</h2>
-              <div style={{ marginTop: '16px' }}>
-                <PriorityBar label="Critical" value={analytics.summary.by_priority.critical} color="#ff4444" />
-                <PriorityBar label="High" value={analytics.summary.by_priority.high} color="#ff9944" />
-                <PriorityBar label="Medium" value={analytics.summary.by_priority.medium} color="#ffdd44" />
-                <PriorityBar label="Low" value={analytics.summary.by_priority.low} color="#44ff44" />
+            <div className="premium-card">
+              <h2>🎯 Risk Assessment Graph</h2>
+              <div style={{ marginTop: '32px' }}>
+                <PriorityGauge delay={0.1} label="Critical Vulnerability" value={analytics.summary.by_priority.critical} color="#ef4444" />
+                <PriorityGauge delay={0.2} label="High Severity" value={analytics.summary.by_priority.high} color="#f59e0b" />
+                <PriorityGauge delay={0.3} label="Medium Priority" value={analytics.summary.by_priority.medium} color="#3b82f6" />
+                <PriorityGauge delay={0.4} label="Low Priority" value={analytics.summary.by_priority.low} color="#10b981" />
               </div>
             </div>
 
             {/* ── Type Breakdown ──────────────────────────── */}
-            <div className="card">
-              <h2>🧪 By Test Type</h2>
-              <div style={{ marginTop: '16px' }}>
-                <TypeBadge label="Functional" value={analytics.summary.by_type.functional} />
-                <TypeBadge label="Negative" value={analytics.summary.by_type.negative} />
-                <TypeBadge label="Boundary" value={analytics.summary.by_type.boundary} />
-                <TypeBadge label="Integration" value={analytics.summary.by_type.integration} />
-                <TypeBadge label="Security" value={analytics.summary.by_type.security} />
-                <TypeBadge label="UI" value={analytics.summary.by_type.ui} />
+            <div className="premium-card" style={{ gridColumn: '1 / -1' }}>
+              <h2>🧪 Diagnostic Distribution</h2>
+              <div style={{ marginTop: '32px', display: 'flex', flexWrap: 'wrap' }}>
+                <TagBadge label="Functional Tests" value={analytics.summary.by_type.functional} />
+                <TagBadge label="Negative Paths" value={analytics.summary.by_type.negative} />
+                <TagBadge label="Boundary Analysis" value={analytics.summary.by_type.boundary} />
+                <TagBadge label="Integration Layers" value={analytics.summary.by_type.integration} />
+                <TagBadge label="Security Audits" value={analytics.summary.by_type.security} />
+                <TagBadge label="UI Interfaces" value={analytics.summary.by_type.ui} />
               </div>
             </div>
           </div>
 
-          {/* ── Gaps Section ──────────────────────────── */}
-          {analytics.gaps && analytics.gaps.length > 0 && (
-            <div className="card">
-              <h2>⚠️ Coverage Gaps</h2>
-              <div style={{ marginTop: '16px' }}>
-                {analytics.gaps.map((gap, idx) => (
-                  <div key={idx} style={{
-                    padding: '12px',
-                    marginBottom: '8px',
-                    backgroundColor: 'rgba(255, 100, 100, 0.1)',
-                    borderLeft: '4px solid #ff6464',
-                    borderRadius: '4px'
-                  }}>
-                    <strong>{gap.story_id}</strong>: {gap.issue}
-                  </div>
-                ))}
+          <div className="grid-2" style={{ marginBottom: 40 }}>
+            {/* ── Gaps Section ──────────────────────────── */}
+            {analytics.gaps && analytics.gaps.length > 0 && (
+              <div className="premium-card">
+                <h2>⚠️ Coverage Deltas</h2>
+                <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {analytics.gaps.map((gap, idx) => (
+                    <div key={idx} style={{
+                      padding: '24px',
+                      backgroundColor: 'rgba(239, 68, 68, 0.04)',
+                      border: '1px solid rgba(239, 68, 68, 0.15)',
+                      borderLeft: '4px solid var(--danger)',
+                      borderRadius: '20px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <strong style={{ color: 'var(--text-primary)', fontSize: '16px' }}>{gap.story_id}</strong>
+                        <span style={{ fontSize: '18px' }}>🔍</span>
+                      </div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5' }}>{gap.issue}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ── Quality Flags Section ──────────────────────────── */}
-          {analytics.flags && analytics.flags.length > 0 && (
-            <div className="card">
-              <h2>🚩 Quality Issues</h2>
-              <div style={{ marginTop: '16px' }}>
-                {analytics.flags.map((flag, idx) => (
-                  <div key={idx} style={{
-                    padding: '12px',
-                    marginBottom: '8px',
-                    backgroundColor: 'rgba(255, 200, 0, 0.1)',
-                    borderLeft: '4px solid #ffc800',
-                    borderRadius: '4px'
-                  }}>
-                    <strong>{flag.id || flag.test_id}</strong>: {flag.issue}
-                  </div>
-                ))}
+            {/* ── Quality Flags Section ──────────────────────────── */}
+            {analytics.flags && analytics.flags.length > 0 && (
+              <div className="premium-card">
+                <h2>🚩 Quality AI Discrepancies</h2>
+                <div style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {analytics.flags.map((flag, idx) => (
+                    <div key={idx} style={{
+                      padding: '24px',
+                      backgroundColor: 'rgba(245, 158, 11, 0.04)',
+                      border: '1px solid rgba(245, 158, 11, 0.15)',
+                      borderLeft: '4px solid var(--warning)',
+                      borderRadius: '20px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <strong style={{ color: 'var(--text-primary)', fontSize: '16px' }}>{flag.id || flag.test_id}</strong>
+                        <span style={{ fontSize: '18px' }}>⚡</span>
+                      </div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5' }}>{flag.issue}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* ── Test Cases List ──────────────────────────── */}
           {testCases && (
-            <div className="card">
-              <h2>📋 Test Cases List</h2>
-              <div style={{ marginTop: '16px', overflowX: 'auto' }}>
-                <table style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '14px'
-                }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #444' }}>
-                      <th style={{ padding: '12px', textAlign: 'left' }}>ID</th>
-                      <th style={{ padding: '12px', textAlign: 'left' }}>Title</th>
-                      <th style={{ padding: '12px', textAlign: 'left' }}>Priority</th>
-                      <th style={{ padding: '12px', textAlign: 'left' }}>Type</th>
-                      <th style={{ padding: '12px', textAlign: 'left' }}>Status</th>
+            <div className="premium-card">
+              <h2>📋 Live Indexed Coverage Manifest</h2>
+              <div style={{ marginTop: '32px', overflowX: 'auto', borderRadius: '24px', border: '1px solid var(--border)' }}>
+                <table className="premium-table">
+                  <thead style={{ background: 'var(--bg-elevated)' }}>
+                    <tr>
+                      <th>Identifier</th>
+                      <th>Narrative Definition</th>
+                      <th>Impact Tier</th>
+                      <th>Execution Vector</th>
+                      <th>State</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {testCases.slice(0, 20).map((tc, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #333' }}>
-                        <td style={{ padding: '12px' }}><code>{tc.id}</code></td>
-                        <td style={{ padding: '12px' }}>{tc.title}</td>
-                        <td style={{ padding: '12px' }}>
-                          <span style={{
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            backgroundColor: getPriorityColor(tc.priority)
-                          }}>
-                            {tc.priority}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px' }}>{tc.type}</td>
-                        <td style={{ padding: '12px' }}>✅ Ready</td>
-                      </tr>
-                    ))}
+                    {testCases.slice(0, 20).map((tc, idx) => {
+                      const priorityStyles = getPriorityColorSpec(tc.priority);
+                      return (
+                        <tr key={idx} style={{ transition: 'all 0.2s ease' }}>
+                          <td style={{ color: 'var(--primary-light)', fontFamily: 'var(--font-mono)', fontWeight: '700' }}>{tc.id || tc.ID}</td>
+                          <td style={{ color: 'var(--text-primary)', fontWeight: '700' }}>{tc.title}</td>
+                          <td>
+                            <span style={{
+                              padding: '6px 16px',
+                              borderRadius: '100px',
+                              fontSize: '12px',
+                              fontWeight: '800',
+                              color: priorityStyles.color,
+                              background: priorityStyles.bg,
+                              textTransform: 'uppercase',
+                              border: `1px solid ${priorityStyles.color}30`
+                            }}>
+                              {tc.priority}
+                            </span>
+                          </td>
+                          <td style={{ color: 'var(--text-secondary)' }}>{tc.type}</td>
+                          <td style={{ color: 'var(--success)', fontWeight: '700' }}>● Synchronized</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
                 {testCases.length > 20 && (
-                  <p style={{ marginTop: '12px', color: '#888' }}>
-                    ... and {testCases.length - 20} more test cases
-                  </p>
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px', background: 'var(--bg-elevated)', fontWeight: '600' }}>
+                    Displaying subset (20 of {testCases.length}) fully parsed executable vectors
+                  </div>
                 )}
               </div>
             </div>
@@ -225,59 +320,12 @@ export default function DashboardAnalytics() {
       )}
 
       {!analytics && !error && !loading && (
-        <div className="card">
-          <p>No analytics data. Generate test cases first in the <strong>Create Cases</strong> section.</p>
+        <div className="premium-card" style={{ padding: '80px 40px', textAlign: 'center' }}>
+          <div style={{ fontSize: '64px', opacity: 0.5, marginBottom: '24px' }}>📊</div>
+          <h3 style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '16px' }}>Dashboard Engine Dormant</h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: '16px', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6' }}>No analytics matrix injected. Execute your test generation pipeline within the <strong>Create Cases</strong> portal to populate this dashboard.</p>
         </div>
       )}
     </div>
   )
-}
-
-function PriorityBar({ label, value, color }) {
-  const maxValue = 10
-  const percentage = Math.min((value / maxValue) * 100, 100)
-  return (
-    <div style={{ marginBottom: '12px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-        <span>{label}</span>
-        <span style={{ fontWeight: 'bold' }}>{value}</span>
-      </div>
-      <div style={{ width: '100%', height: '24px', backgroundColor: '#333', borderRadius: '4px', overflow: 'hidden' }}>
-        <div style={{
-          height: '100%',
-          width: `${percentage}%`,
-          backgroundColor: color,
-          transition: 'width 0.3s ease'
-        }} />
-      </div>
-    </div>
-  )
-}
-
-function TypeBadge({ label, value }) {
-  if (value === 0) return null
-  return (
-    <span style={{
-      display: 'inline-block',
-      padding: '6px 12px',
-      marginRight: '8px',
-      marginBottom: '8px',
-      backgroundColor: '#4f46e5',
-      color: 'white',
-      borderRadius: '20px',
-      fontSize: '12px'
-    }}>
-      {label}: {value}
-    </span>
-  )
-}
-
-function getPriorityColor(priority) {
-  const colors = {
-    'critical': 'rgba(255, 68, 68, 0.2)',
-    'high': 'rgba(255, 153, 68, 0.2)',
-    'medium': 'rgba(255, 221, 68, 0.2)',
-    'low': 'rgba(68, 255, 68, 0.2)'
-  }
-  return colors[priority?.toLowerCase()] || 'rgba(150, 150, 150, 0.2)'
 }

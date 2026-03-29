@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { marked } from 'marked'
 import { useConnections } from '../hooks/useConnections'
 import { generateService } from '../services/api'
+import StoryCard from '../components/StoryCard.jsx'
 
 const SETTINGS_DEFAULTS = {
   projectName:  '',
@@ -126,42 +127,33 @@ export default function TestPlanCreator() {
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      <div className="page-header">
-        <div className="breadcrumb">
-          <span>Home</span><span className="sep">/</span>
-          <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate('/fetch')}>Fetch Story</span>
-          <span className="sep">/</span><span>Create Plan</span>
+      <div className="dashboard-hero" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)', padding: '40px', marginBottom: '32px' }}>
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '6px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: '800', letterSpacing: '1px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+            📋 QA STRATEGY
+          </div>
+          <h1 style={{ fontSize: '42px', fontWeight: '900', letterSpacing: '-1.5px', margin: '0 0 8px 0', textShadow: '0 8px 24px rgba(0,0,0,0.2)', lineHeight: '1.1' }}>Test Plan Orchestration</h1>
+          <p style={{ fontSize: '18px', opacity: 0.9, maxWidth: '600px', fontWeight: '500', lineHeight: '1.6', margin: 0 }}>Synthesize multi-environment strategy, execution scoping, and risk mitigation protocols via BLAST logic.</p>
         </div>
-        <h1>📋 Create Test Plan</h1>
-        <p>Review the extracted story signals and generate a BLAST-structured test plan using AI.</p>
       </div>
 
       <div className="split-layout">
-        {/* Left: Story + Settings */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Story summary */}
-          <div className="card">
-            <div className="card-header">
-              <h3>📌 Story</h3>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/fetch')}>Change →</button>
-            </div>
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--primary-light)', fontWeight: 600 }}>{story.id}</span>
-                <span className={`badge priority-${story.priority?.toLowerCase()}`}>{story.priority}</span>
-              </div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', lineHeight: 1.3 }}>{story.title}</div>
-              {story.flags?.length > 0 && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {story.flags.map(f => <span key={f} className="badge badge-warning">⚠ {f}</span>)}
-                </div>
-              )}
-            </div>
+          <div style={{ position: 'relative' }}>
+            <StoryCard story={story} compact />
+            <button 
+              className="btn btn-secondary btn-sm" 
+              style={{ position: 'absolute', top: 12, right: 12 }} 
+              onClick={() => navigate('/fetch')}
+            >
+              🔄 Change Story
+            </button>
           </div>
 
           {/* Plan Settings */}
-          <div className="card">
-            <div className="card-header"><h3>⚙️ Plan Settings</h3></div>
+          <div className="premium-card">
+            <h2>⚙️ Plan Settings</h2>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[
                 { key: 'projectName',  label: 'Project Name',     placeholder: story.id + ' Features' },
@@ -197,7 +189,7 @@ export default function TestPlanCreator() {
         {/* Right: Output */}
         <div>
           {generating && (
-            <div className="card">
+            <div className="premium-card">
               <div className="generating-animation">
                 <div className="spinner spinner-lg" />
                 <div className="label">🤖 AI is extracting BLAST context…</div>
@@ -211,7 +203,7 @@ export default function TestPlanCreator() {
           {error && <div className="alert alert-error">❌ {error}</div>}
 
           {!generating && !testPlan && !error && (
-            <div className="card">
+            <div className="premium-card">
               <div className="empty-state">
                 <div className="empty-icon">🤖</div>
                 <div className="empty-title">Ready to Generate</div>

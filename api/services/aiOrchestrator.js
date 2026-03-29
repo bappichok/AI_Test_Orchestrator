@@ -71,6 +71,13 @@ async function callOllama(systemPrompt, userPrompt, baseUrl, model = 'llama3') {
 
 async function callGroq(systemPrompt, userPrompt, apiKey, model = 'llama-3.3-70b-versatile') {
   if (!apiKey) throw new Error('Groq API Key is missing');
+  // Failsafe: if the UI sent corrupted data like 'mistral' or 'mestrail', force a valid one
+  const validModels = ['llama-3.3-70b-versatile', 'llama3-70b-8192', 'mixtral-8x7b-32768', 'gemma2-9b-it'];
+  if (!model || !validModels.includes(model)) {
+    model = 'llama-3.3-70b-versatile';
+  }
+  console.log(`\n[Groq API] Invoking endpoint with exact model string: "${model}"\n`);
+
   const response = await axios.post(
     'https://api.groq.com/openai/v1/chat/completions',
     {

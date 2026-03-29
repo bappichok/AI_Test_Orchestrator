@@ -30,6 +30,15 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// ─── Global Error Handler ──────────────────────────────────────
+app.use((err, req, res, next) => {
+  console.error('\n[Backend Crash Intercepted]', err.stack || err.message);
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Enterprise Server Error',
+    requestId: req.headers['x-request-id'] || 'system-intercept'
+  });
+});
+
 app.listen(PORT, '127.0.0.1', () => {
   console.log(`\n🚀 AI Test Orchestrator API running on http://127.0.0.1:${PORT}`);
   console.log(`   LLM Provider: ${process.env.LLM_PROVIDER || 'openai'}`);
