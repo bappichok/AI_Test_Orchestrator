@@ -137,32 +137,34 @@ export default function DashboardAnalytics() {
       {/* ── Stunning Hero Header ──────────────────────────── */}
       <div className="dashboard-hero">
         <div style={{ position: 'relative', zIndex: 10 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '32px' }}>
             <div>
-              <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '6px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: '800', letterSpacing: '1px', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                ✨ EXPERT INTELLIGENCE
+              <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '8px 20px', borderRadius: '100px', fontSize: '12px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '24px', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.15)' }}>
+                ✨ INTELLIGENT MATRIX
               </div>
-              <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '-1.5px', margin: '0 0 12px 0', textShadow: '0 8px 24px rgba(0,0,0,0.2)', lineHeight: '1.1' }}>QA Master Dashboard</h1>
-              <p style={{ fontSize: '18px', opacity: 0.9, maxWidth: '600px', fontWeight: '500', lineHeight: '1.6', margin: 0 }}>Advanced real-time statistical evaluation, risk matrices, and global traceability coverage powered by LLMs.</p>
+              <h1 style={{ fontSize: '52px', fontWeight: '900', letterSpacing: '-2px', margin: '0 0 12px 0', textShadow: '0 10px 30px rgba(0,0,0,0.3)', lineHeight: '1.1', maxWidth: '600px' }}>QA Analytics Engine</h1>
+              <p style={{ fontSize: '18px', opacity: 0.95, maxWidth: '650px', fontWeight: '500', lineHeight: '1.7', margin: 0 }}>Real-time test coverage analysis, risk stratification, and AI-powered quality insights with advanced traceability matrices.</p>
             </div>
             <button 
               onClick={loadDashboard} 
               disabled={loading}
               style={{ 
-                background: 'white', 
-                color: 'var(--primary)', 
-                padding: '18px 40px', 
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%)', 
+                color: '#4f46e5', 
+                padding: '16px 36px', 
                 borderRadius: '100px', 
-                fontSize: '16px', 
+                fontSize: '15px', 
                 fontWeight: '800', 
-                boxShadow: '0 20px 40px rgba(0,0,0,0.2)', 
+                boxShadow: '0 12px 32px rgba(0,0,0,0.25)', 
                 transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', 
-                border: 'none',
+                border: '1px solid rgba(255,255,255,0.3)',
                 cursor: loading ? 'not-allowed' : 'pointer',
-                transform: loading ? 'scale(0.95)' : 'scale(1)'
+                transform: loading ? 'scale(0.95)' : 'scale(1)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }} 
             >
-              {loading ? '🔄 Compiling Matrix...' : '⚡ Refresh Live Data'}
+              {loading ? '🔄 Compiling...' : '⚡ Refresh Data'}
             </button>
           </div>
         </div>

@@ -25,13 +25,13 @@ export default function Dashboard() {
   return (
     <div className="page-container" style={{ animation: 'fadeIn 0.4s ease' }}>
       {/* ── Dashboard Hero ──────────────────────────── */}
-      <div className="dashboard-hero" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)', padding: '40px', marginBottom: '32px' }}>
+      <div className="dashboard-hero" style={{ position: 'relative', zIndex: 1 }}>
         <div style={{ position: 'relative', zIndex: 10 }}>
-          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '6px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: '800', letterSpacing: '1px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-            🚀 ENGINE START
+          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '8px 20px', borderRadius: '100px', fontSize: '12px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.15)' }}>
+            🚀 B.L.A.S.T ENGINE
           </div>
-          <h1 style={{ fontSize: '42px', fontWeight: '900', letterSpacing: '-1.5px', margin: '0 0 8px 0', textShadow: '0 8px 24px rgba(0,0,0,0.2)', lineHeight: '1.1' }}>Test Orchestrator</h1>
-          <p style={{ fontSize: '18px', opacity: 0.9, maxWidth: '600px', fontWeight: '500', lineHeight: '1.6', margin: 0 }}>The professional B.L.A.S.T. framework runner. Synthesize AI-powered test architectures from Jira, Azure DevOps, or raw requirements.</p>
+          <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '-2px', margin: '0 0 12px 0', textShadow: '0 10px 30px rgba(0,0,0,0.3)', lineHeight: '1.1', maxWidth: '800px' }}>Test Orchestrator Matrix</h1>
+          <p style={{ fontSize: '18px', opacity: 0.95, maxWidth: '700px', fontWeight: '500', lineHeight: '1.7', margin: 0 }}>Blueprint • Link • Architect • Stylize • Trigger. Build deterministic, self-healing automation powered by AI.</p>
         </div>
       </div>
 
@@ -58,45 +58,45 @@ export default function Dashboard() {
       </div>
 
       {/* ── Stats ───────────────────────────────────── */}
-      <div className="grid-4" style={{ marginBottom: 40 }}>
+      <div className="grid-4" style={{ marginBottom: 48 }}>
         {STATS_CONFIG.map(s => (
           <div key={s.key} className="premium-metric">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</span>
-              <span style={{ fontSize: 18, background: s.color + '20', width: 32, height: 32, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{s.icon}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>{s.label}</span>
+              <span style={{ fontSize: 20, background: s.color + '25', width: 40, height: 40, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>{s.icon}</span>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--text-primary)', margin: '8px 0' }}>{stats[s.key]}</div>
-            <div style={{ height: 4, width: '100%', background: 'var(--border)', borderRadius: 2 }}>
-              <div style={{ height: '100%', width: stats[s.key] > 0 ? '60%' : '0%', background: s.color, borderRadius: 2 }} />
+            <div style={{ fontSize: 40, fontWeight: 900, color: 'var(--text-primary)', margin: '12px 0 0 0', letterSpacing: '-1px' }}>{stats[s.key]}</div>
+            <div style={{ height: 6, width: '100%', background: 'rgba(99, 102, 241, 0.1)', borderRadius: 3, overflow: 'hidden', marginTop: '8px' }}>
+              <div style={{ height: '100%', width: stats[s.key] > 0 ? '75%' : '0%', background: `linear-gradient(90deg, ${s.color}80, ${s.color})`, borderRadius: 3, transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: `0 0 16px ${s.color}40` }} />
             </div>
           </div>
         ))}
       </div>
 
-      <div className="content-grid" style={{ marginBottom: 40 }}>
+      <div className="content-grid" style={{ marginBottom: 48 }}>
         {/* Recent Plans */}
         <div className="premium-card">
           <h2>📁 Execution History</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {history.length > 0 ? (
               history.map((h, i) => (
                 <div key={i} className="nav-item" onClick={() => {
                   sessionStorage.setItem('viewHistoryPlan', JSON.stringify(h))
                   navigate('/history')
-                }} style={{ padding: '16px', background: 'var(--bg-glass)', border: '1px solid var(--border)', cursor: 'pointer' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--primary-light)' }}>{h.story?.id || 'Manual'}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(h.createdAt).toLocaleDateString()}</span>
+                }} style={{ padding: '18px 20px', background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.15)', cursor: 'pointer', borderRadius: '16px', transition: 'all 0.3s ease' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
+                    <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--primary-light)', letterSpacing: '-0.3px' }}>{h.story?.id || 'Manual'}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>{new Date(h.createdAt).toLocaleDateString()}</span>
                   </div>
-                  <div style={{ fontSize: 13, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontSize: 14, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: '1.4' }}>
                     {h.story?.title || 'Generated Plan'}
                   </div>
                 </div>
               ))
             ) : (
-              <div className="empty-state" style={{ padding: '20px 0' }}>
-                <div style={{ fontSize: 24, marginBottom: 8 }}>📭</div>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No local history compiled yet.</div>
+              <div className="empty-state" style={{ padding: '32px 0', textAlign: 'center' }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>📭</div>
+                <div style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 500 }}>No local history compiled yet.</div>
               </div>
             )}
             <button className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => navigate('/history')}>View All Protocols →</button>
