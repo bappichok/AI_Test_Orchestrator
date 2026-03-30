@@ -97,9 +97,6 @@ export default function MainLayout() {
               <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{llmLabel}</div>
             </div>
           </div>
-          <button className="theme-toggle" onClick={toggleTheme} style={{ flexShrink: 0 }}>
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
         </div>
       </aside>
 

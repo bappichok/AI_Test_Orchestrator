@@ -46,3 +46,16 @@ BLAST/
 Test_Repo/
 .playwright-mcp/
 .node_modules_old/
+# ─── Internal Documentation & Analysis ────────
+CODE_REVIEW_FINDINGS.md
+EDGE_CASES_AND_MEMORY_ANALYSIS.md
+QUICK_REFERENCE.md
+
+# ─── Screenshots & Media ──────────────────────
+dashboard.png
+*.png
+*.jpg
+*.jpeg
+
+# ─── Empty Placeholders ───────────────────────
+architecture/
