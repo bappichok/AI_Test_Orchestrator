@@ -7,6 +7,9 @@
 [![Accessibility](https://img.shields.io/badge/accessibility-WCAG%202.1%20AA-brightgreen)](https://www.w3.org/WAI/WCAG21/quickref/)
 
 > **Transform QA workflows**: Generate professional test plans, test cases, and automation code from Jira/Azure DevOps—powered by the **B.L.A.S.T. Framework** and AI. No manual spreadsheets. No context switching. Just structured, exportable QA artifacts.
+
+**Live demo:** https://ai-test-orchestrator.vercel.app
+
 ---
 
 ## 🎯 Why This Project Exists
@@ -210,6 +213,8 @@ graph LR
 ---
 
 ## 🚀 Quick Start
+
+**Prerequisites:** Node.js 18+, npm 9+
 
 ```bash
 # 1. Clone and install
@@ -442,7 +447,7 @@ Contributions are welcome! Please:
 
 ## 📖 Learn More
 
-- [B.L.A.S.T. Framework Documentation](BLAST/blast.md)
+- [B.L.A.S.T. Framework Documentation](https://github.com/yourusername/ai-test-orchestrator/blob/main/BLAST/blast.md) — See repository for framework specification
 - [OpenAI API Docs](https://platform.openai.com/docs)
 - [Jira REST API](https://developer.atlassian.com/cloud/jira/rest)
 - [Azure DevOps API](https://learn.microsoft.com/en-us/azure/devops/integrate/concepts/rest-api-overview)
