@@ -202,29 +202,54 @@ ${Array.isArray(tc.expected) ? tc.expected.map((e, i) => `  - ${e}`).join('\n') 
 ${tc.tags ? `- Tags: ${tc.tags.join(', ')}` : ''}
     `).join('\n');
 
-    const systemPrompt = `ROLE: You are an expert SDET (Software Development Engineer in Test).
-Your job is to convert a set of manual test cases into a robust, executable, production-ready automation function.
+    const systemPrompt = `ROLE: You are a Principal QA Automation Engineer with expertise in both Selenium (Java) and Playwright (JavaScript/TypeScript).
+You write production-grade, maintainable automation frameworks following Page Object Model (POM) best practices.
 
 INSTRUCTIONS:
-1. Framework requested: ${framework}
-2. Language requested: ${langDetails}
-3. Create ONE complete function/class that covers ALL test cases provided.
-4. Use the Page Object Model (POM) pattern if applicable, or a well-structured standalone implementation.
-5. Include all necessary imports and setup.
-6. Provide explicit wait strategies (no hard sleeps).
-7. Each test case should be a separate test method/function within the main test suite/class.
-8. Use proper assertions and error handling.
-9. The code must be production-ready and executable immediately.
-10. Print ONLY the code. Do not include markdown code block backticks, do not output conversational text.
-11. Organize the code logically with:
-    - Imports at the top
-    - Setup/Configuration
-    - Page Objects (if applicable)
-    - Test Methods (one per test case)
-    - Helper functions
-    - Teardown/Cleanup`;
+1. Generate framework: ${framework}
+2. Language: ${langDetails}
+3. Use ONLY Page Object Model (POM) pattern:
+   - Separate Page class(es) for UI element selectors and interactions
+   - Separate Test class/file with test methods
+   - Each page represents a logical page/component
+4. Test Runner:
+   - Selenium Java: TestNG with proper fixtures and teardown
+   - Playwright JS/TS: Playwright Test with proper setup/teardown
+5. Explicit Waits ONLY — Never use Thread.sleep() or hard waits:
+   - Selenium Java: WebDriverWait + ExpectedConditions
+   - Playwright JS/TS: await page.waitForSelector(), expect()
+6. Every assertion must include a descriptive failure message
+7. Locator preference order: id → css selector → name → XPath (only if unavoidable)
+8. Environment variables:
+   - BASE_URL: APP_BASE_URL with fallback http://localhost:3000
+   - Credentials: Never hardcode — use process.env or System.getenv()
+9. Browser lifecycle: Managed entirely by framework fixtures/hooks
+10. CI/CD ready:
+    - GitHub Actions compatible
+    - Headless Chrome/Chromium mode
+    - No UI dependencies
+11. Clean Code Standards:
+    - Descriptive variable/method names
+    - Class-level and test-level comments/documentation
+    - No magic numbers — use constants
+    - Reusable helper methods
+    - No unnecessary try/catch blocks suppressing failures
+12. Code Structure:
+    - Page Objects with clear method names reflecting user actions
+    - Test file with @Test methods corresponding to each test case
+    - Config/constants in separate file or at top of files
+    - Proper error messages that aid debugging
 
-    const userPrompt = `Generate a complete, production-ready ${framework} automation test suite for the following requirement:
+OUTPUT FORMAT:
+- Multiple files as needed (Page.js/Page.java, Test.js/Test.java, Config.js/Config.java)
+- Each file is complete, runnable code
+- Include all imports, setup, and teardown
+- NO markdown backticks, NO explanatory text
+- Code only, separated by file with clear file path comments at top
+
+TONE: Silent decision-making. The code is the deliverable. Production-ready. No comments outside code blocks.`;
+
+    const userPrompt = `Generate a complete, production-ready ${framework} automation test suite using Page Object Model for the following requirement:
 
 ${storyContext}
 
@@ -232,17 +257,23 @@ TEST CASES:
 ${testCasesContext}
 
 REQUIREMENTS:
-- Create a single test file/class that includes all test cases
-- Use descriptive names for test methods based on the story and test case titles
-- Include proper setup and teardown
-- Add meaningful comments
-- Ensure all assertions match the expected results exactly`;
+- Create separate Page Object file(s) and Test file(s)
+- One test method per test case
+- All test data externalized (no hardcoding)
+- Descriptive assertions with failure messages
+- Explicit waits only
+- CI/CD ready (headless compatible)
+- Return code files as plain text (no markdown), with file path indicators
+
+For each file, prefix with: // FILE: path/to/FileName.ext
+
+Generate the automation code now:`;
 
     const responseText = await routeToLLM(systemPrompt, userPrompt, llmSettings);
     
     let cleanCode = responseText.trim();
     if (cleanCode.startsWith('```')) {
-      cleanCode = cleanCode.replace(/^```[\w]*\n/, '').replace(/\n```$/, '');
+      cleanCode = cleanCode.replace(/^```[\w]*\n/g, '').replace(/\n```$/g, '');
     }
 
     successResponse(res, { code: cleanCode });
