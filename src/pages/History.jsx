@@ -40,16 +40,38 @@ export default function History() {
 
   const exportItem = (item) => {
     let content = '', ext = 'md', name = 'artifact'
-    if (activeCategory === 'plans') { content = item.testPlan; name = `Plan-${item.story?.id}` }
-    else if (activeCategory === 'cases') { content = JSON.stringify(item.testCases, null, 2); ext = 'json'; name = `Cases-${item.story?.id}` }
-    else if (activeCategory === 'code') { content = item.code; ext = 'js'; name = `Automation-${item.story?.id}` }
+    try {
+      if (activeCategory === 'plans') { 
+        content = item.testPlan || ''; 
+        name = `Plan-${item.story?.id || 'export'}`
+      }
+      else if (activeCategory === 'cases') { 
+        content = JSON.stringify(item.testCases || [], null, 2); 
+        ext = 'json'; 
+        name = `Cases-${item.story?.id || 'export'}`
+      }
+      else if (activeCategory === 'code') { 
+        content = item.code || ''; 
+        ext = 'js'; 
+        name = `Automation-${item.story?.id || 'export'}`
+      }
 
-    const blob = new Blob([content], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${name}-${Date.now()}.${ext}`
-    a.click()
+      if (!content) {
+        alert('No content available to export');
+        return;
+      }
+
+      const blob = new Blob([content], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${name}-${Date.now()}.${ext}`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('Failed to export artifact');
+    }
   }
 
   return (
@@ -150,16 +172,22 @@ export default function History() {
                 
                 {activeCategory === 'cases' && (
                   <div className="grid-2">
-                    {selected.testCases.map((tc, idx) => (
-                      <div key={idx} className="nav-item" style={{ padding: '20px', background: 'var(--bg-elevated)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                          <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--primary-light)' }}>{tc.id}</span>
-                          <span className={`badge priority-${tc.priority?.toLowerCase()}`}>{tc.priority}</span>
+                    {selected.testCases && selected.testCases.length > 0 ? (
+                      selected.testCases.map((tc, idx) => (
+                        <div key={idx} className="nav-item" style={{ padding: '20px', background: 'var(--bg-elevated)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                            <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--primary-light)' }}>{tc.id}</span>
+                            <span className={`badge priority-${tc.priority?.toLowerCase()}`}>{tc.priority}</span>
+                          </div>
+                          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{tc.title}</div>
+                          <div style={{ fontSize: 12, opacity: 0.7 }}>{tc.type}</div>
                         </div>
-                        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{tc.title}</div>
-                        <div style={{ fontSize: 12, opacity: 0.7 }}>{tc.type}</div>
+                      ))
+                    ) : (
+                      <div style={{ gridColumn: '1 / -1', padding: '40px 20px', textAlign: 'center' }}>
+                        <p style={{ margin: 0, opacity: 0.6, fontSize: '13px' }}>No test cases found in this artifact.</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
 
