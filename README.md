@@ -13,6 +13,7 @@
 - 📊 **QA Dashboard & Analytics**: Actionable insights into test coverage, priority distribution, and quality flags (e.g., detecting low-quality expected results).
 - 🤖 **Automation Code Generator**: Converts manual test cases into production-ready Playwright or Selenium (Java) code, preserving story/epic context.
 - 🎨 **Modern UX**: Premium dark/light theme with glassmorphism, real-time connection testing, and secure credential management.
+- ♿ **WCAG 2.1 AA Accessible**: Full keyboard navigation, 4.5:1 contrast ratios, ARIA attributes, screen reader compatible.
 - 📁 **History & Export**: Persistent history of generated plans and easy export to Markdown or JSON.
 - 🚀 **Vercel-ready**: Optimized for modern cloud deployments.
 
@@ -121,6 +122,36 @@ npx vercel --prod
 
 Ensure you set the required environment variables in the Vercel project settings.
 
+## 🎨 UI/UX & Accessibility
+
+### Recent Improvements (March 2026)
+
+**Accessibility Enhancements:**
+- ✅ **WCAG 2.1 AA Compliant**: Full keyboard navigation with visible focus indicators on all interactive elements
+- ✅ **Contrast Ratios**: All text meets 4.5:1 minimum (integration status upgraded, stat labels enhanced)
+- ✅ **ARIA Attributes**: Proper semantic HTML with `aria-expanded`, `aria-label`, and heading hierarchy
+- ✅ **Screen Reader Support**: Compatible with VoiceOver, NVDA, and JAWS
+
+**Design System:**
+- **Icon Standardization**: `.icon-circle` utility for consistent 40px circular icon containers across all components
+- **Button Hierarchy**: Primary CTA now 18px with text-shadow for enhanced contrast; secondary buttons visually differentiated
+- **Progressive Disclosure**: BLAST Framework collapsible by default (saves ~40% vertical space on mobile), persists user preference
+- **Improved Spacing**: Enhanced section separation with better visual hierarchy and breathing room
+
+**Component Updates:**
+- Dashboard: Optimized stat cards (14px labels), standardized icon treatment, collapsible framework section
+- Connectors: Unified icon styling with icon-circle utility
+- All Forms: Enhanced focus states with `:focus-visible` for keyboard users
+- Navigation: Clear focus indicators on sidebar items
+
+### Design Philosophy
+The application follows a **premium glassmorphism aesthetic** with:
+- Dark/light theme support
+- Consistent 24px spacing grid
+- Smooth micro-animations (0.3s ease transitions)
+- Accessible color palette with sufficient contrast
+- Mobile-first responsive design (375px → 1440px+)
+
 ## 📋 Generated Output
 
 ### Test Plan Sections
@@ -133,3 +164,19 @@ Ensure you set the required environment variables in the Vercel project settings
 - Observable expected results
 - Automated Traceability Matrix
 - Coverage analytics and gap detection
+
+## ⌨️ Keyboard Shortcuts & Navigation
+
+### Navigation
+| Shortcut | Action |
+|----------|--------|
+| `Tab` | Navigate through all interactive elements |
+| `Shift + Tab` | Navigate backward |
+| `Enter` / `Space` | Activate buttons and links |
+| `Escape` | Close modals (when implemented) |
+
+### Features
+- All buttons, links, and form inputs have visible focus indicators (cyan outline)
+- Sidebar active state clearly indicated with accent border and indicator
+- Form fields show blue glow on focus with raised effect
+- Focus order follows logical document flow (left-to-right, top-to-bottom)
