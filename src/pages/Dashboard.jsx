@@ -8,6 +8,10 @@ export default function Dashboard() {
   const { connections } = useConnections()
   const [history, setHistory] = useState([])
   const [stats, setStats] = useState({ plans: 0, stories: 0, connections: 0, exports: 0 })
+  const [showBLAST, setShowBLAST] = useState(() => {
+    const stored = localStorage.getItem('dashboardShowBLAST')
+    return stored ? JSON.parse(stored) : false
+  })
 
   useEffect(() => {
     const h = JSON.parse(localStorage.getItem('testPlanHistory') || '[]')
@@ -19,6 +23,12 @@ export default function Dashboard() {
       exports: parseInt(localStorage.getItem('exportCount') || '0')
     })
   }, [connections])
+
+  const toggleBLAST = () => {
+    const newState = !showBLAST
+    setShowBLAST(newState)
+    localStorage.setItem('dashboardShowBLAST', JSON.stringify(newState))
+  }
 
   const hasConnections = Object.values(connections).some(c => c.connected)
 
@@ -51,11 +61,11 @@ export default function Dashboard() {
       )}
 
       {/* ── Action Bar ──────────────────────────────── */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 40 }}>
-        <button className="btn btn-primary btn-lg" onClick={() => navigate('/fetch')} style={{ padding: '16px 32px' }}>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 56 }}>
+        <button className="btn btn-primary btn-lg" onClick={() => navigate('/fetch')} style={{ padding: '16px 36px', flex: 1 }}>
           <span>🔍</span> Fetch Story &amp; Orchestrate
         </button>
-        <button className="btn btn-secondary btn-lg" onClick={() => navigate('/connectors')} style={{ padding: '16px 32px' }}>
+        <button className="btn btn-secondary btn-lg" onClick={() => navigate('/connectors')} style={{ padding: '14px 28px' }}>
           <span>🔌</span> System Connectors
         </button>
       </div>
@@ -65,8 +75,8 @@ export default function Dashboard() {
         {STATS_CONFIG.map(s => (
           <div key={s.key} className="premium-metric">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>{s.label}</span>
-              <span style={{ fontSize: 20, background: s.color + '25', width: 40, height: 40, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>{s.icon}</span>
+              <span style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>{s.label}</span>
+              <span className="icon-circle">{s.icon}</span>
             </div>
             <div style={{ fontSize: 40, fontWeight: 900, color: 'var(--text-primary)', margin: '12px 0 0 0', letterSpacing: '-1px' }}>{stats[s.key]}</div>
             <div style={{ height: 6, width: '100%', background: 'rgba(99, 102, 241, 0.1)', borderRadius: 3, overflow: 'hidden', marginTop: '8px' }}>
@@ -88,8 +98,8 @@ export default function Dashboard() {
                   navigate('/history')
                 }} style={{ padding: '18px 20px', background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.15)', cursor: 'pointer', borderRadius: '16px', transition: 'all 0.3s ease' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
-                    <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--primary-light)', letterSpacing: '-0.3px' }}>{h.story?.id || 'Manual'}</span>
-                    <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>{new Date(h.createdAt).toLocaleDateString()}</span>
+                    <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--primary-light)', letterSpacing: '-0.3px' }} role="heading" aria-level="3">{h.story?.id || 'Manual'}</span>
+                    <span style={{ fontSize: 13, color: 'var(--text-secondary-strong)', fontWeight: 600 }} aria-label="Created date">{new Date(h.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div style={{ fontSize: 14, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: '1.4' }}>
                     {h.story?.title || 'Generated Plan'}
@@ -114,10 +124,10 @@ export default function Dashboard() {
               const connected = connections[int.id]?.connected
               return (
                 <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px', background: 'var(--bg-glass)', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 22 }}>{int.icon}</span>
+                  <span className="icon-circle">{int.icon}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{int.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{connected ? 'Handshake Secure' : 'Offline'}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary-strong)', fontWeight: 500 }}>{connected ? 'Handshake Secure' : 'Offline'}</div>
                   </div>
                   <div className={`status-dot ${connected ? 'ok' : 'idle'}`} />
                 </div>
@@ -128,26 +138,33 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* BLAST Guide */}
+      {/* BLAST Guide - Collapsible */}
       <div className="premium-card">
-        <h2>🚀 The B.L.A.S.T. Framework</h2>
-        <div className="grid-5" style={{ gap: 12, marginTop: 24 }}>
-          {[
-            { letter: 'B', name: 'Blueprint',  desc: 'Schema Vision', color: '#6366f1' },
-            { letter: 'L', name: 'Link',        desc: 'Core Connectivity', color: '#22d3ee' },
-            { letter: 'A', name: 'Architect',   desc: 'Signal Extraction', color: '#10b981' },
-            { letter: 'S', name: 'Stylize',     desc: 'AI Orchestration', color: '#f59e0b' },
-            { letter: 'T', name: 'Trigger',     desc: 'System Deployment', color: '#ec4899' },
-          ].map(step => (
-            <div key={step.letter} className="premium-metric" style={{ padding: '20px', textAlign: 'center', background: 'var(--bg-glass)', border: '1px solid var(--border)' }}>
-              <div style={{ width: 44, height: 44, background: step.color + '20', color: step.color, border: `2px solid ${step.color}40`, borderRadius: '50%', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 20 }}>
-                {step.letter}
-              </div>
-              <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text-primary)', marginBottom: 4 }}>{step.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>{step.desc}</div>
-            </div>
-          ))}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showBLAST ? 24 : 0 }}>
+          <h2 style={{ margin: 0 }}>🚀 The B.L.A.S.T. Framework</h2>
+          <button className="btn btn-secondary btn-sm" onClick={toggleBLAST} aria-expanded={showBLAST}>
+            {showBLAST ? '▼ Collapse' : '▶ Learn More'}
+          </button>
         </div>
+        {showBLAST && (
+          <div className="grid-5" style={{ gap: 12, marginTop: 24, animation: 'slideDown 0.3s ease' }}>
+            {[
+              { letter: 'B', name: 'Blueprint',  desc: 'Schema Vision', color: '#6366f1' },
+              { letter: 'L', name: 'Link',        desc: 'Core Connectivity', color: '#22d3ee' },
+              { letter: 'A', name: 'Architect',   desc: 'Signal Extraction', color: '#10b981' },
+              { letter: 'S', name: 'Stylize',     desc: 'AI Orchestration', color: '#f59e0b' },
+              { letter: 'T', name: 'Trigger',     desc: 'System Deployment', color: '#ec4899' },
+            ].map(step => (
+              <div key={step.letter} className="premium-metric" style={{ padding: '20px', textAlign: 'center', background: 'var(--bg-glass)', border: '1px solid var(--border)' }}>
+                <div style={{ width: 56, height: 56, background: step.color + '20', color: step.color, border: `2px solid ${step.color}40`, borderRadius: '50%', margin: '0 auto 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 22 }}>
+                  {step.letter}
+                </div>
+                <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)', marginBottom: 4 }}>{step.name}</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.4 }}>{step.desc}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -39,10 +39,10 @@ const IntegrationCard = ({
     <div className={`premium-card ${status === 'connected' ? 'connected' : ''}`} style={{ marginBottom: '24px' }}>
       <div className="card-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div className="integration-icon">{integration.icon}</div>
+          <span className="icon-circle">{integration.icon}</span>
           <div>
             <div className="integration-name">{integration.name}</div>
-            <div className="integration-desc">{integration.desc}</div>
+            <div className="integration-desc" style={{ color: 'var(--text-secondary-strong)' }}>{integration.desc}</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
