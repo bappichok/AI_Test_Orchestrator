@@ -923,9 +923,9 @@ body {
   
   .page-body { padding: 28px 18px; }
   
-  .dashboard-hero { padding: 40px 28px; border-radius: 20px; margin-bottom: 32px; }
-  .dashboard-hero h1 { font-size: 36px !important; letter-spacing: -1.5px !important; }
-  .dashboard-hero p { font-size: 16px !important; }
+  .dashboard-hero { padding: 36px 28px; border-radius: 20px; margin-bottom: 32px; }
+  .dashboard-hero h1 { font-size: 32px !important; letter-spacing: -1.2px !important; }
+  .dashboard-hero p { font-size: 15px !important; }
   
   .premium-card { padding: 28px; border-radius: 20px; }
   .premium-card h2 { font-size: 22px; margin-bottom: 24px; }
@@ -950,12 +950,12 @@ body {
 /* ── Universal Premium Vercel-Style Overrides ────────────────────────────────────── */
 .dashboard-hero {
   position: relative;
-  padding: 56px 48px;
+  padding: 44px 48px;
   border-radius: 28px;
   background: linear-gradient(135deg, #1e1b4b 0%, #312e81 25%, #4f46e5 50%, #7c3aed 75%, #a855f7 100%);
   color: white;
   overflow: hidden;
-  margin-bottom: 48px;
+  margin-bottom: 40px;
   box-shadow: 0 24px 48px -12px rgba(99, 102, 241, 0.3), 0 0 1px rgba(255,255,255,0.1) inset;
   animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   border: 1px solid rgba(255,255,255,0.08);

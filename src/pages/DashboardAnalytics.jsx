@@ -139,11 +139,13 @@ export default function DashboardAnalytics() {
         <div style={{ position: 'relative', zIndex: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '32px' }}>
             <div>
-              <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '8px 20px', borderRadius: '100px', fontSize: '12px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '24px', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.15)' }}>
-                ✨ INTELLIGENT MATRIX
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '6px 14px', borderRadius: '100px', fontSize: '11px', fontWeight: '900', letterSpacing: '1.2px', border: '1px solid rgba(255,255,255,0.3)' }}>
+                  ✨ ANALYTICS
+                </div>
               </div>
-              <h1 style={{ fontSize: '52px', fontWeight: '900', letterSpacing: '-2px', margin: '0 0 12px 0', textShadow: '0 10px 30px rgba(0,0,0,0.3)', lineHeight: '1.1', maxWidth: '600px' }}>QA Analytics Engine</h1>
-              <p style={{ fontSize: '18px', opacity: 0.95, maxWidth: '650px', fontWeight: '500', lineHeight: '1.7', margin: 0 }}>Real-time test coverage analysis, risk stratification, and AI-powered quality insights with advanced traceability matrices.</p>
+              <h1 style={{ fontSize: '44px', fontWeight: '900', letterSpacing: '-1.8px', margin: '0 0 8px 0', textShadow: '0 10px 30px rgba(0,0,0,0.3)', lineHeight: '1.1', maxWidth: '600px' }}>QA Analytics Engine</h1>
+              <p style={{ fontSize: '16px', opacity: 0.92, maxWidth: '620px', fontWeight: '500', lineHeight: '1.6', margin: 0 }}>Real-time coverage analysis, risk stratification, and AI-powered quality insights with traceability matrices.</p>
             </div>
             <button 
               onClick={loadDashboard} 
@@ -151,9 +153,9 @@ export default function DashboardAnalytics() {
               style={{ 
                 background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%)', 
                 color: '#4f46e5', 
-                padding: '16px 36px', 
+                padding: '14px 32px', 
                 borderRadius: '100px', 
-                fontSize: '15px', 
+                fontSize: '14px', 
                 fontWeight: '800', 
                 boxShadow: '0 12px 32px rgba(0,0,0,0.25)', 
                 transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', 
@@ -161,7 +163,8 @@ export default function DashboardAnalytics() {
                 cursor: loading ? 'not-allowed' : 'pointer',
                 transform: loading ? 'scale(0.95)' : 'scale(1)',
                 whiteSpace: 'nowrap',
-                flexShrink: 0
+                flexShrink: 0,
+                marginTop: '2px'
               }} 
             >
               {loading ? '🔄 Compiling...' : '⚡ Refresh Data'}

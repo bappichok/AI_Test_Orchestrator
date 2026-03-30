@@ -25,13 +25,16 @@ export default function Dashboard() {
   return (
     <div className="page-container" style={{ animation: 'fadeIn 0.4s ease' }}>
       {/* ── Dashboard Hero ──────────────────────────── */}
-      <div className="dashboard-hero" style={{ position: 'relative', zIndex: 1 }}>
+      <div className="dashboard-hero" style={{ position: 'relative', zIndex: 1, paddingBottom: '32px' }}>
         <div style={{ position: 'relative', zIndex: 10 }}>
-          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '8px 20px', borderRadius: '100px', fontSize: '12px', fontWeight: '900', letterSpacing: '1.5px', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.15)' }}>
-            🚀 B.L.A.S.T ENGINE
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '6px 14px', borderRadius: '100px', fontSize: '11px', fontWeight: '900', letterSpacing: '1.2px', border: '1px solid rgba(255,255,255,0.3)' }}>
+              🚀 B.L.A.S.T
+            </div>
+            <span style={{ fontSize: '13px', fontWeight: '700', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.5px' }}>AI Test Orchestrator</span>
           </div>
-          <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '-2px', margin: '0 0 12px 0', textShadow: '0 10px 30px rgba(0,0,0,0.3)', lineHeight: '1.1', maxWidth: '800px' }}>Test Orchestrator Matrix</h1>
-          <p style={{ fontSize: '18px', opacity: 0.95, maxWidth: '700px', fontWeight: '500', lineHeight: '1.7', margin: 0 }}>Blueprint • Link • Architect • Stylize • Trigger. Build deterministic, self-healing automation powered by AI.</p>
+          <h1 style={{ fontSize: '40px', fontWeight: '900', letterSpacing: '-1.5px', margin: '0 0 8px 0', textShadow: '0 10px 30px rgba(0,0,0,0.3)', lineHeight: '1.1', maxWidth: '700px' }}>Test Orchestration Platform</h1>
+          <p style={{ fontSize: '16px', opacity: 0.9, maxWidth: '650px', fontWeight: '500', lineHeight: '1.5', margin: 0 }}>Build deterministic, self-healing automation powered by AI. Blueprint • Link • Architect • Stylize • Trigger.</p>
         </div>
       </div>
 
