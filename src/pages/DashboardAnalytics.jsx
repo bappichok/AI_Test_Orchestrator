@@ -180,7 +180,7 @@ export default function DashboardAnalytics() {
           <div className="content-grid" style={{ marginBottom: 40 }}>
             <div className="premium-card">
               <h2>📈 Velocity Matrix</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '32px' }}>
+              <div className="grid-2" style={{ marginTop: '32px' }}>
                 <MetricGridBox delay={0.1} icon="⚡" gradient="var(--primary)" label="Total Executions" value={analytics.summary.total} />
                 <MetricGridBox delay={0.2} icon="🎯" gradient="var(--success)" label="Features Covered" value={analytics.coverage.stories_covered} />
                 <MetricGridBox delay={0.3} icon="🛡" gradient="var(--info)" label="Traceability" value={`${Number(analytics.coverage.coverage_percent).toFixed(1)}%`} />

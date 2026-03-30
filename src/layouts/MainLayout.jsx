@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext.jsx'
 
 const navItems = [
@@ -17,11 +18,39 @@ const toolItems = [
 
 export default function MainLayout() {
   const { theme, toggleTheme, llmLabel } = useApp()
+  const [isSidebarOpen, setSidebarOpen] = useState(false)
+  const location = useLocation()
+
+  // Close sidebar on navigation (mobile)
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [location.pathname])
 
   return (
     <div className="app-layout">
+      {/* ── Mobile Branding & Toggle ─────────────────── */}
+      <header className="mobile-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="sidebar-logo-icon" style={{ width: '32px', height: '32px', fontSize: '14px' }}>🎯</div>
+          <span style={{ fontWeight: 800, fontSize: '15px', color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>TestOrchestrator</span>
+        </div>
+        <button 
+          className="btn-icon btn-ghost" 
+          onClick={() => setSidebarOpen(!isSidebarOpen)}
+          style={{ fontSize: '24px' }}
+        >
+          {isSidebarOpen ? '✕' : '☰'}
+        </button>
+      </header>
+
+      {/* ── Sidebar Overlay (Mobile) ────────────────── */}
+      <div 
+        className={`sidebar-overlay ${isSidebarOpen ? 'visible' : ''}`} 
+        onClick={() => setSidebarOpen(false)}
+      />
+
       {/* ── Sidebar ──────────────────────────────────── */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">🎯</div>
           <div className="sidebar-logo-text" style={{ flex: 1 }}>
@@ -34,7 +63,7 @@ export default function MainLayout() {
         </div>
 
         <nav className="sidebar-nav">
-          <span className="sidebar-section-label">Main</span>
+          <span className="sidebar-section-label">Main Navigation</span>
           {navItems.map(item => (
             <NavLink
               key={item.to}
@@ -60,15 +89,15 @@ export default function MainLayout() {
           ))}
         </nav>
 
-        <div className="sidebar-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div className="llm-badge">
+        <div className="sidebar-footer">
+          <div className="llm-badge" style={{ flex: 1, marginRight: '10px' }}>
             <div className="dot" />
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>AI Active</div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{llmLabel}</div>
+            <div style={{ overflow: 'hidden' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>AI Master</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{llmLabel}</div>
             </div>
           </div>
-          <button className="btn-icon btn-ghost" onClick={toggleTheme} title="Toggle Theme" style={{ fontSize: 18 }}>
+          <button className="theme-toggle" onClick={toggleTheme} style={{ flexShrink: 0 }}>
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
         </div>

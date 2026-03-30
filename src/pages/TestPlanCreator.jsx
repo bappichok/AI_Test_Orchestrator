@@ -109,16 +109,23 @@ export default function TestPlanCreator() {
 
   if (!story) {
     return (
-      <div style={{ animation: 'fadeIn 0.4s ease' }}>
-        <div className="page-header">
-          <h1>📋 Test Plan Creator</h1>
+      <div className="page-container" style={{ animation: 'fadeIn 0.4s ease' }}>
+        <div className="dashboard-hero" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)', padding: '40px', marginBottom: '32px' }}>
+          <div style={{ position: 'relative', zIndex: 10 }}>
+            <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '6px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: '800', letterSpacing: '1px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+              📋 QA STRATEGY
+            </div>
+            <h1 style={{ fontSize: '42px', fontWeight: '900', letterSpacing: '-1.5px', margin: '0 0 8px 0', textShadow: '0 8px 24px rgba(0,0,0,0.2)', lineHeight: '1.1' }}>Test Plan Orchestration</h1>
+            <p style={{ fontSize: '18px', opacity: 0.9, maxWidth: '600px', fontWeight: '500', lineHeight: '1.6', margin: 0 }}>Synthesize multi-environment strategy, execution scoping, and risk mitigation protocols via BLAST logic.</p>
+          </div>
         </div>
-        <div className="empty-state">
-          <div className="empty-icon">📭</div>
-          <div className="empty-title">No story loaded</div>
-          <div className="empty-desc">Fetch a story first, then come here to generate your test plan.</div>
-          <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => navigate('/fetch')}>
-            🔍 Fetch a Story
+        
+        <div className="premium-card" style={{ textAlign: 'center', padding: '80px 40px' }}>
+          <div style={{ fontSize: '64px', marginBottom: '24px', opacity: 0.5 }}>📭</div>
+          <h3 style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '16px' }}>No Active Strategy Context</h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: '16px', maxWidth: '500px', margin: '0 auto 24px', lineHeight: '1.6' }}>Fetch a story from your integration system first, then return here to generate a comprehensive BLAST-structured test plan.</p>
+          <button className="btn btn-primary btn-lg" onClick={() => navigate('/fetch')}>
+            <span>🔍</span> Fetch Architectural Blueprint
           </button>
         </div>
       </div>

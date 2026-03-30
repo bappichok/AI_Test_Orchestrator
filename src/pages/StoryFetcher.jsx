@@ -83,7 +83,7 @@ export default function StoryFetcher() {
       <div className="premium-card" style={{ marginBottom: 32 }}>
         <h2>Database Connectivity</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
             {SOURCES.map(s => (
               <button
                 key={s.id}

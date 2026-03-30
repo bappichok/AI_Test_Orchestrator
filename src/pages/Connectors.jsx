@@ -36,7 +36,7 @@ const IntegrationCard = ({
   }
 
   return (
-    <div className={`card ${status === 'connected' ? 'connected' : ''}`}>
+    <div className={`premium-card ${status === 'connected' ? 'connected' : ''}`} style={{ marginBottom: '24px' }}>
       <div className="card-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div className="integration-icon">{integration.icon}</div>
@@ -182,11 +182,15 @@ export default function Connectors() {
   }
 
   return (
-    <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      <div className="page-header">
-        <div className="breadcrumb"><span>Home</span><span className="sep">/</span><span>Integrations</span></div>
-        <h1>🔌 Integrations</h1>
-        <p>Connect your project management tools and AI provider to start generating test plans.</p>
+    <div className="page-container" style={{ animation: 'fadeIn 0.4s ease' }}>
+      <div className="dashboard-hero" style={{ background: 'linear-gradient(135deg, #475569 0%, #1e293b 100%)', padding: '40px', marginBottom: '32px' }}>
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', padding: '6px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: '800', letterSpacing: '1px', marginBottom: '16px', border: '1px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+            ⚙️ CORE INFRASTRUCTURE
+          </div>
+          <h1 style={{ fontSize: '42px', fontWeight: '900', letterSpacing: '-1.5px', margin: '0 0 8px 0', textShadow: '0 8px 24px rgba(0,0,0,0.2)', lineHeight: '1.1' }}>System Connectors</h1>
+          <p style={{ fontSize: '18px', opacity: 0.9, maxWidth: '600px', fontWeight: '500', lineHeight: '1.6', margin: 0 }}>Establish secure handshakes with Jira, Azure DevOps, and your high-performance LLM compute providers.</p>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>

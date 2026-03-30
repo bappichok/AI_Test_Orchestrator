@@ -156,6 +156,16 @@ export default function TestCaseCreator() {
 
       setTestCases(data.testCases)
       localStorage.setItem('generatedTestCases', JSON.stringify(data.testCases))
+      
+      // Save to history
+      const history = JSON.parse(localStorage.getItem('testCaseHistory') || '[]')
+      history.unshift({ 
+        story, 
+        testCases: data.testCases, 
+        createdAt: new Date().toISOString() 
+      })
+      localStorage.setItem('testCaseHistory', JSON.stringify(history.slice(0, 50)))
+
       addToast(`Generated ${data.testCases.length} test cases!`, 'success')
     } catch (e) {
       setError(e.response?.data?.error || e.message)
@@ -196,7 +206,7 @@ export default function TestCaseCreator() {
 
       <div className="content-grid">
         {/* Left column: Input */}
-        <div className="card">
+        <div className="premium-card">
           <h2>Input Requirement</h2>
           
           <div className="form-group">

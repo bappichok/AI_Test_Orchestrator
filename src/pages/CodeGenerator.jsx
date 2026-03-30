@@ -160,6 +160,17 @@ export default function CodeGenerator() {
       if (!response.ok) throw new Error(data.error || 'Code generation failed')
 
       setGeneratedCode(data.code)
+
+      // Save to history
+      const history = JSON.parse(localStorage.getItem('automationHistory') || '[]')
+      history.unshift({ 
+        story, 
+        code: data.code, 
+        framework,
+        createdAt: new Date().toISOString() 
+      })
+      localStorage.setItem('automationHistory', JSON.stringify(history.slice(0, 50)))
+
       addToast(`Code generated for ${framework} successfully!`, 'success')
     } catch (e) {
       setError(e.message || 'Unknown error occurred')
@@ -203,7 +214,7 @@ export default function CodeGenerator() {
 
       <div className="content-grid">
         {/* ── Left Panel: Configuration ──────────────── */}
-        <div className="card">
+        <div className="premium-card">
           <h2>Configuration Workflow</h2>
 
           {/* Load Test Cases */}
