@@ -77,24 +77,106 @@
   --bg-base:       #f4f6fa;
   --bg-surface:    #ffffff;
   --bg-elevated:   #f8fafc;
-  --bg-card:       rgba(255, 255, 255, 0.6);
-  --bg-glass:      rgba(255, 255, 255, 0.6);
-  --bg-glass-hover:rgba(255, 255, 255, 0.9);
+  --bg-card:       rgba(255, 255, 255, 0.95);
+  --bg-glass:      rgba(255, 255, 255, 0.7);
+  --bg-glass-hover:rgba(255, 255, 255, 0.95);
 
-  --border:        rgba(0, 0, 0, 0.06);
+  --border:        rgba(0, 0, 0, 0.08);
   --border-focus:  rgba(99, 102, 241, 0.4);
 
   --text-primary:  #0f172a;
   --text-secondary:#475569;
-  --text-muted:    #94a3b8;
-  --text-faint:    #cbd5e1;
+  --text-secondary-strong: #334155;
+  --text-muted:    #64748b;
+  --text-faint:    #94a3b8;
 
-  --shadow-sm:     0 2px 4px rgba(0,0,0,0.02);
-  --shadow:        0 12px 32px -12px rgba(0,0,0,0.08), inset 0 1px 1px rgba(255,255,255,0.8);
-  --shadow-lg:     0 24px 48px -12px rgba(0,0,0,0.1), inset 0 1px 1px rgba(255,255,255,0.9);
+  --shadow-sm:     0 2px 4px rgba(0,0,0,0.04);
+  --shadow:        0 8px 24px -8px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-lg:     0 20px 48px -12px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
   --shadow-primary:0 8px 24px -6px rgba(99,102,241,0.3);
-  
+
   --grad-surface:  linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(248,250,252,0.8) 100%);
+}
+
+/* Light theme: fix premium cards with hardcoded dark backgrounds */
+[data-theme="light"] .premium-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.9) 100%);
+  border-color: rgba(99, 102, 241, 0.15);
+  box-shadow: 0 8px 24px -8px rgba(0,0,0,0.08), inset 0 1px 1px rgba(255,255,255,1);
+  color: var(--text-primary);
+}
+[data-theme="light"] .premium-card:hover {
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 16px 40px -12px rgba(99,102,241,0.15), inset 0 1px 1px rgba(255,255,255,1);
+}
+
+/* Light theme: fix premium metrics with hardcoded dark backgrounds */
+[data-theme="light"] .premium-metric {
+  background: linear-gradient(135deg, #ffffff 0%, rgba(248,250,252,0.8) 100%);
+  border-color: rgba(99, 102, 241, 0.2);
+  box-shadow: 0 4px 16px -6px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,1);
+  color: var(--text-primary);
+}
+[data-theme="light"] .premium-metric:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 16px 40px -12px rgba(99,102,241,0.15), inset 0 1px 2px rgba(255,255,255,1);
+}
+
+/* Light theme: ensure card headers/bodies use correct colors */
+[data-theme="light"] .card-header {
+  background: rgba(248, 250, 252, 0.8);
+}
+
+/* Light theme: form elements */
+[data-theme="light"] .form-input,
+[data-theme="light"] .form-select,
+[data-theme="light"] .form-textarea {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(0,0,0,0.12);
+}
+[data-theme="light"] .form-input::placeholder,
+[data-theme="light"] .form-textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Light theme: sidebar labels and muted text */
+[data-theme="light"] .sidebar-section-label {
+  color: #94a3b8;
+}
+
+/* Light theme: test plan content */
+[data-theme="light"] .test-plan-content {
+  color: var(--text-secondary);
+}
+[data-theme="light"] .test-plan-content h2 {
+  color: var(--primary-dark);
+}
+
+/* Light theme: llm badge text */
+[data-theme="light"] .llm-badge {
+  color: var(--text-secondary);
+}
+[data-theme="light"] .llm-badge .label {
+  color: var(--text-primary);
+}
+
+/* Light theme: tag pills */
+[data-theme="light"] .tag-pill {
+  background: #ffffff;
+  color: var(--text-primary);
+}
+
+/* Light theme: premium table */
+[data-theme="light"] .premium-table th {
+  color: var(--text-muted);
+}
+[data-theme="light"] .premium-table td {
+  color: var(--text-secondary);
+}
+[data-theme="light"] .premium-table tr:hover td {
+  background: rgba(99,102,241,0.04);
+  color: var(--text-primary);
 }
 
 html { scroll-behavior: smooth; }
