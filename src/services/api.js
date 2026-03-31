@@ -20,9 +20,13 @@ export const adoService = {
 };
 
 export const generateService = {
-  testPlan: (story, settings) => api.post('/generate/test-plan', { story, settings }),
-  testCases: (story, settings) => api.post('/generate/test-cases', { story, settings }),
-  code: (testCases, framework, settings) => api.post('/generate/code', { testCases, framework, settings }),
+  testPlan:   (story, settings)                     => api.post('/generate/test-plan',        { story, settings }),
+  testCases:  (story, settings)                     => api.post('/generate/test-cases',       { story, settings }),
+  singleCase: (story, settings, replaceId)          => api.post('/generate/test-cases/single',{ story, settings, replaceId }),
+  reviewCode: (code, framework, settings)           => api.post('/generate/review-code',      { code, framework, settings }),
+  autoFix:    (code, framework, failedChecks, warnings, settings) =>
+                                                       api.post('/generate/auto-fix-code',    { code, framework, failedChecks, warnings, settings }),
+  code:       (testCases, framework, settings)      => api.post('/generate/code',             { testCases, framework, settings }),
 };
 
 export default api;

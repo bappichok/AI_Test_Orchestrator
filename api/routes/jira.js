@@ -37,12 +37,43 @@ router.post('/fetch', async (req, res) => {
     const descText = extractTextFromADF(descDoc);
     const acText = extractAcceptanceCriteria(descDoc, fields.customfield_10016);
 
-    // Extract attachments
-    const attachments = (fields.attachment || []).map(att => ({
-      name: att.filename,
-      url: att.content,
-      mimeType: att.mimeType,
-      size: att.size
+    // Separate attachments by type
+    const rawAttachments = fields.attachment || [];
+    const TEXT_TYPES = ['text/plain', 'text/csv', 'text/markdown', 'application/json', 'text/x-log'];
+    const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'];
+
+    // Download text-based attachments and embed their content
+    const attachmentTexts = [];
+    const attachmentImages = [];
+
+    await Promise.all(rawAttachments.map(async (att) => {
+      const mime = att.mimeType || '';
+      const isText = TEXT_TYPES.some(t => mime.startsWith(t)) ||
+        /\.(txt|log|csv|md|json)$/i.test(att.filename);
+      const isImage = IMAGE_TYPES.some(t => mime.startsWith(t)) ||
+        /\.(png|jpe?g|gif|webp|svg)$/i.test(att.filename);
+
+      if (isText) {
+        try {
+          const contentResp = await axios.get(att.content, {
+            headers: { Authorization: `Basic ${auth}`, Accept: 'text/plain, */*' },
+            responseType: 'text',
+            timeout: 8000
+          });
+          attachmentTexts.push({
+            name: att.filename,
+            content: String(contentResp.data).slice(0, 3000)
+          });
+        } catch (_) {
+          attachmentTexts.push({ name: att.filename, content: '[Could not download file content]' });
+        }
+      } else if (isImage) {
+        attachmentImages.push({
+          name: att.filename,
+          url: att.content,
+          mimeType: att.mimeType
+        });
+      }
     }));
 
     const flags = [];
@@ -54,7 +85,8 @@ router.post('/fetch', async (req, res) => {
       title: fields.summary || '',
       description: descText || '',
       acceptance_criteria: acText || [],
-      attachments: attachments,
+      attachmentTexts,
+      attachmentImages,
       priority: normalizePriority(fields.priority?.name),
       type: fields.issuetype?.name || 'Story',
       epic: fields.epic?.name || fields.customfield_10014 || '',

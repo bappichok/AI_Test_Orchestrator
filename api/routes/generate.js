@@ -25,14 +25,19 @@ router.post('/test-cases', async (req, res) => {
   const { story, settings } = req.body;
   if (!story) return errorResponse(res, 'Missing story details', 400);
 
+  const count = Math.min(Math.max(parseInt(settings?.count || 5, 10), 1), 20);
+  const ratio = count <= 3
+    ? `${count} test case(s): focus on the core happy path and one failure scenario.`
+    : `Exactly ${count} test cases. Ratio: ~40% positive (happy path), ~30% negative (failure/invalid input), ~30% edge/boundary cases.`;
+
   const systemPrompt = `ROLE: You are a Senior QA Test Engineer expert in boundary value analysis, equivalence partitioning, and writing test cases that are executable without reading the original story.
 
 INSTRUCTIONS:
-1. For each user story below, generate 3-5 test cases: 1 positive (happy path), 1 negative, 1+ edge/boundary case.
+1. Generate ${ratio}
 2. Every test case must trace to a specific core functionality described in the description or acceptance criteria.
 3. Steps must be imperative, numbered, and unambiguous. No vague steps like "click the button" — specify which button, what state, what input.
 4. Expected results must be observable: reference UI messages, data states, HTTP status codes, or specific UI element states.
-5. Priorities: Critical = happy path core flow, High = key failure case, Medium = edge/boundary, Low =UX/cosmetic.
+5. Priorities: Critical = happy path core flow, High = key failure case, Medium = edge/boundary, Low = UX/cosmetic.
 6. No duplicate test cases. No test cases for out-of-scope items.
 7. Preconditions must describe the exact starting state (user logged in / not logged in, data present, etc).
 
@@ -70,6 +75,29 @@ TONE: Imperative. Precise. Every word serves the tester. No ambiguity tolerated.
     ? story.acceptance_criteria.map((ac, i) => `  ${i + 1}. ${ac}`).join('\n')
     : '  - No acceptance criteria provided.';
 
+  // Build attachment context for the user prompt
+  const attachmentSection = (() => {
+    const parts = [];
+    if (story.attachmentTexts?.length) {
+      parts.push('## ATTACHED FILES (read carefully — reference these in your test cases)');
+      story.attachmentTexts.forEach(f => {
+        parts.push(`### ${f.name}\n${f.content}`);
+      });
+    }
+    if (story.attachmentImages?.length) {
+      parts.push(`## ATTACHED IMAGES (${story.attachmentImages.map(i => i.name).join(', ')}) — Visual context attached by reporter.`);
+    }
+    // Manual uploaded files from frontend
+    if (story.uploadedFiles?.length) {
+      parts.push('## USER-UPLOADED FILES');
+      story.uploadedFiles.forEach(f => {
+        if (f.content) parts.push(`### ${f.name}\n${f.content}`);
+        else parts.push(`### ${f.name} [Image attached by user]`);
+      });
+    }
+    return parts.length ? '\n\n' + parts.join('\n\n') : '';
+  })();
+
   const userPrompt = `Generate a JSON array of test cases using the strict Anti-Hallucination rules for the following user story:
 
 ## STORY DATA
@@ -82,9 +110,9 @@ TONE: Imperative. Precise. Every word serves the tester. No ambiguity tolerated.
 ${story.description || 'No description provided.'}
 
 ## ACCEPTANCE CRITERIA
-${acSection}
+${acSection}${attachmentSection}
 
-OUTPUT YOUR RESPONSE AS A PURE JSON ARRAY ONLY.`;
+OUTPUT YOUR RESPONSE AS A PURE JSON ARRAY ONLY. Generate exactly ${count} test cases.`;
 
   try {
     const content = await routeToLLM(systemPrompt, userPrompt, settings);
@@ -100,6 +128,105 @@ OUTPUT YOUR RESPONSE AS A PURE JSON ARRAY ONLY.`;
     successResponse(res, { testCases: JSON.parse(jsonContent), story });
   } catch (err) {
     errorResponse(res, `Test Case generation failed: ${err.message}`, 500, err);
+  }
+});
+
+// POST /api/generate/test-cases/single — regenerate one test case
+router.post('/test-cases/single', async (req, res) => {
+  const { story, settings, replaceId } = req.body;
+  if (!story) return errorResponse(res, 'Missing story details', 400);
+
+  const systemPrompt = `You are a Senior QA Test Engineer. Generate exactly ONE test case as a JSON object (not an array). Follow this structure exactly:
+{
+  "id": "${replaceId || 'TC-REG'}",
+  "title": "...",
+  "type": "...",
+  "priority": "Critical|High|Medium|Low",
+  "steps": ["Step 1", "Step 2"],
+  "expected": ["Expected result 1"],
+  "tags": ["tag1", "tag2"],
+  "ac_traced": []
+}
+Output pure JSON only. No markdown, no explanation, no array wrapper.`;
+
+  const acSection = story.acceptance_criteria?.length
+    ? story.acceptance_criteria.map((ac, i) => `  ${i + 1}. ${ac}`).join('\n')
+    : '  - No acceptance criteria provided.';
+
+  const userPrompt = `Generate ONE replacement test case for story "${story.title}" (ID: ${story.id}).
+Description: ${story.description || 'N/A'}
+Acceptance Criteria:\n${acSection}
+Make it different from the one being replaced (ID: ${replaceId}). Focus on an angle not yet covered.`;
+
+  try {
+    const content = await routeToLLM(systemPrompt, userPrompt, settings);
+    let jsonContent = content.trim().replace(/^```json?/m, '').replace(/```$/m, '').trim();
+    successResponse(res, { testCase: JSON.parse(jsonContent) });
+  } catch (err) {
+    errorResponse(res, `Single case regeneration failed: ${err.message}`, 500, err);
+  }
+});
+
+// POST /api/generate/review-code — AI code quality review
+router.post('/review-code', async (req, res) => {
+  const { code, framework, settings } = req.body;
+  if (!code) return errorResponse(res, 'Code is required', 400);
+
+  const systemPrompt = `ROLE: You are a Principal QA Automation Architect doing a code review of automation test code.
+
+Review the provided ${framework || 'automation'} code against these criteria:
+1. POM_STRUCTURE: Page Object Model used (Page class + Test class separated)
+2. NO_HARD_WAITS: No Thread.sleep() or waitForTimeout() with hardcoded numbers
+3. ASSERTIONS: Every test method has at least one assertion with a failure message
+4. LOCATOR_QUALITY: Prefers id/css over fragile XPath
+5. NO_HARDCODED_CREDS: No hardcoded passwords, API keys, or base URLs
+6. TEST_COVERAGE: One test method per test case ID found in comments/names
+7. CI_READY: Headless-compatible, no GUI dependencies
+
+Return ONLY a JSON object with this exact structure:
+{
+  "score": <integer 0-100>,
+  "grade": "<letter grade A+/A/B+/B/C/D/F>",
+  "passed": ["check name", ...],
+  "warnings": ["description of warning", ...],
+  "failed": ["description of failure", ...],
+  "suggestion": "<one actionable improvement suggestion>"
+}
+
+Scoring: start at 100, deduct 15 per FAILED check, deduct 5 per WARNING. No markdown, no prose, pure JSON only.`;
+
+  const userPrompt = `Review this ${framework || 'automation'} code:\n\n${code.slice(0, 8000)}`;
+
+  try {
+    const content = await routeToLLM(systemPrompt, userPrompt, settings);
+    let jsonContent = content.trim().replace(/^```json?/m, '').replace(/```$/m, '').trim();
+    const match = jsonContent.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('Could not parse review JSON');
+    successResponse(res, { review: JSON.parse(match[0]) });
+  } catch (err) {
+    errorResponse(res, `Code review failed: ${err.message}`, 500, err);
+  }
+});
+
+// POST /api/generate/auto-fix-code — Re-generate code fixing identified issues
+router.post('/auto-fix-code', async (req, res) => {
+  const { code, framework, failedChecks, warnings, settings } = req.body;
+  if (!code) return errorResponse(res, 'Code is required', 400);
+
+  const issueList = [
+    ...(failedChecks || []).map(f => `FAILED: ${f}`),
+    ...(warnings || []).map(w => `WARNING: ${w}`)
+  ].join('\n');
+
+  const systemPrompt = `You are a Principal QA Automation Architect. Fix the provided ${framework || 'automation'} code to resolve the listed issues. Return ONLY the fixed code with no markdown backticks, no explanations — just the raw code.`;
+  const userPrompt = `Fix the following issues in this ${framework} code:\n\nISSUES TO FIX:\n${issueList}\n\nCODE:\n${code.slice(0, 8000)}`;
+
+  try {
+    const content = await routeToLLM(systemPrompt, userPrompt, settings);
+    let clean = content.trim().replace(/^```[\w]*\n/g, '').replace(/\n```$/g, '');
+    successResponse(res, { code: clean });
+  } catch (err) {
+    errorResponse(res, `Auto-fix failed: ${err.message}`, 500, err);
   }
 });
 
